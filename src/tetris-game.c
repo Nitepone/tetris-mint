@@ -144,8 +144,8 @@ int test_block (struct game_contents *game_contents,
 	// test each pos
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = new_block->board_units[i];
-		if ( cur_unit_pos.x < 0 || cur_unit_pos.x >= 10 ||
-		     cur_unit_pos.y < 0 || cur_unit_pos.y >= 24 ||
+		if ( cur_unit_pos.x < 0 || cur_unit_pos.x >= BOARD_WIDTH ||
+		     cur_unit_pos.y < 0 || cur_unit_pos.y >= BOARD_HEIGHT ||
 		     game_contents->board[cur_unit_pos.y][cur_unit_pos.x]
 		) {
 			return -2;
@@ -178,6 +178,7 @@ int delete_line (int line_number, struct game_contents *game_contents) {
 int cull_lines (struct game_contents *game_contents) {
 	int i, j, units_in_row;
 	int lines_culled = 0;
+	// iterate and count each row/line
 	for (j = 0; j < BOARD_HEIGHT; j++) {
 		units_in_row = 0;
 		for (i = 0; i < BOARD_WIDTH; i++) {
@@ -190,6 +191,28 @@ int cull_lines (struct game_contents *game_contents) {
 			lines_culled++;
 		}
 	}
+	// update scores
+	game_contents->lines_cleared += lines_culled;
+	switch (lines_culled) {
+		case 0:
+			break;
+		case 1:
+			game_contents->points += 100;
+			break;
+		case 2:
+			game_contents->points += 250;
+			break;
+		case 3:
+			game_contents->points += 500;
+			break;
+		case 4:
+			game_contents->points += 1000;
+			break;
+		default:
+			game_contents->points += 777;
+			break;
+	}
+
 	return 0;
 }
 
@@ -236,7 +259,6 @@ int rotate_block (int clockwise, struct game_contents *game_contents) {
 	new_block->rotation_angle = (new_block->rotation_angle + x) % ROT_COUNT;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
-				new_block->rotation_angle);
 		game_contents->active_block = new_block;
 	} else {
 		return -1;
