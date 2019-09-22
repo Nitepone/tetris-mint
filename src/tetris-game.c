@@ -11,6 +11,9 @@
 
 #include "tetris-game.h"
 
+/*
+ * Destroys a game_contents and frees memory
+ */
 int destroy_game (struct game_contents **game_contents) {
 	struct game_contents *gc_temp;
 	if (!(*game_contents)) // NULL catch
@@ -24,6 +27,9 @@ int destroy_game (struct game_contents **game_contents) {
 	return 0;
 }
 
+/*
+ * Destroys an active_block and frees memory
+ */
 int destroy_block (struct active_block **block) {
 	struct active_block *ab_temp;
 	if (!(*block)) // NULL catch
@@ -34,17 +40,23 @@ int destroy_block (struct active_block **block) {
 	return 0;
 }
 
+/*
+ * Generates a random block and destroys old
+ */
 int generate_block (struct active_block **block) {
 	// clear pointer
 	destroy_block(block);
 	// allocate and fill
 	*block = calloc(1, sizeof(struct active_block));
-	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT - 2); //TODO: Remove debug that prevents special bocks
+	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
 	(*block)->position = ((struct position) BLOCK_START_POSITION);
 	(*block)->rotation_angle = ROT_NONE;
 	return 0;
 }
 
+/*
+ * Initializes a game_contents struct in memory
+ */
 int new_game (struct game_contents **game_contents) {
 	// destroy old memory cleanly
 	destroy_game(game_contents);
@@ -58,12 +70,16 @@ int new_game (struct game_contents **game_contents) {
 	return 0;
 }
 
+/*
+ * Gets block positions based on offsets and rotation
+ * ( Does not work proper for line and square as the center is not a single
+ *   block. It will work though, just violates pure Tetris rules )
+ */
 int get_def_block_positions (struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		// get one offset
-		//printf ("Offset read %d %d\n", i, block->block_type);
 		cur_offset_pos = block_offsets[block->block_type][i];
 		// rotate
 		switch (block->rotation_angle) {
@@ -85,9 +101,6 @@ int get_def_block_positions (struct active_block *block) {
 				break;
 		}
 		// convert offset to position and save
-		//printf("Block Unit %d at offset %d %d sent to %d %d\n",
-		//		i, x, y, block->position.x + x,
-		//		block->position.y + y);
 		block->board_units[i] = ((struct position) {
 			block->position.x + x,
 			block->position.y + y
@@ -96,6 +109,10 @@ int get_def_block_positions (struct active_block *block) {
 	return 0;
 }
 
+/*
+ * This should direct blocks that are drawn using unit relational drawing
+ * and special blocks to their associated functions.
+ */
 int get_block_positions (struct active_block *block) {
 	switch (block->block_type) {
 		// standard blocks
@@ -104,15 +121,18 @@ int get_block_positions (struct active_block *block) {
 		case cleve:
 		case rhode:
 		case teewee:
-			return get_def_block_positions(block);
 		// special blocks
+		// TODO: Handle these correctly
 		case smashboy:
 		case hero:
-			return -1;
+			return get_def_block_positions(block);
 	}
 	return 0;
 }
 
+/*
+ * Tests if a block can be placed in the current location
+ */
 int test_block (struct game_contents *game_contents,
 		struct active_block *new_block) {
 	int i;
@@ -179,10 +199,11 @@ int place_block (struct game_contents *game_contents) {
 	get_block_positions(game_contents->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = game_contents->active_block->board_units[i];
-		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] = 1;
+		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
 			((int) game_contents->active_block->block_type + 1);
 	}
 	generate_block(&game_contents->active_block);
+	cull_lines (game_contents);
 	return 0;
 }
 
@@ -196,11 +217,8 @@ int translate_block (int rightward, struct game_contents *game_contents) {
 		new_block->position.x--;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
-		printf("Block translated: %d\n",
-				new_block->position.x);
 		game_contents->active_block = new_block;
 	} else {
-		printf("Block can not translate\n");
 		return -1;
 	}
 	return 0;
@@ -213,16 +231,14 @@ int rotate_block (int clockwise, struct game_contents *game_contents) {
 	if (clockwise)
 		x = 1;
 	else
-		x = (-1);
+		x = (ROT_COUNT-1);
 	// perform rotation
 	new_block->rotation_angle = (new_block->rotation_angle + x) % ROT_COUNT;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
-		printf("Block rotated: %d\n",
 				new_block->rotation_angle);
 		game_contents->active_block = new_block;
 	} else {
-		printf("Block can not rotate\n");
 		return -1;
 	}
 	return 0;
@@ -235,13 +251,10 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 	new_block->position.y--;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
-		//printf("Block moved down: %d %d\n",
-		//		new_block->position.y);
 		game_contents->active_block = new_block;
 		return 0;
 	}
 
-	printf("Block can not move further\n");
 	// handle placing block if needed
 	if (!auto_drop) {
 		place_block(game_contents);
@@ -267,7 +280,6 @@ int generate_game_view_data(struct game_view_data **gvd,
 	get_block_positions(gc->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = gc->active_block->board_units[i];
-	//	printf("Drawing block %d at %d %d\n", i, cur_unit_pos.x, cur_unit_pos.y);
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
 			((int) gc->active_block->block_type ) + 1;
 	}

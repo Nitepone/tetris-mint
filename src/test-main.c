@@ -69,8 +69,14 @@ int main() {
 		lower_block(1, game_contents);
 	lower_block(0, game_contents);
 
+	/*
 	rotate_block(1, game_contents);
-	for (i = 0; i < 17; i++)
+	rotate_block(1, game_contents);
+	rotate_block(1, game_contents);
+	*/
+	rotate_block(0, game_contents);
+
+	for (i = 0; i < 22; i++)
 		lower_block(1, game_contents);
 
 	//rotate_block(1, game_contents);
