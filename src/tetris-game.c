@@ -242,7 +242,7 @@ int place_block (struct game_contents *game_contents) {
 	cull_lines (game_contents);
 	// check for game over
 	if (game_over(game_contents))
-		return -1;
+		return 2;
 	generate_block(&game_contents->active_block);
 	return 0;
 }
@@ -291,7 +291,7 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
 		game_contents->active_block = new_block;
-		return 0;
+		return -1;
 	}
 
 	// handle placing block if needed
@@ -301,6 +301,11 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 		if (game_contents->auto_lower_count++ >= MAX_AUTO_LOWER)
 			return place_block(game_contents);
 	}
+	return -1;
+}
+
+int hard_drop (struct game_contents *gc) {
+	while (lower_block(0, gc) < 0);
 	return 0;
 }
 
