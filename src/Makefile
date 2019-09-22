@@ -40,4 +40,4 @@ test-main: test-main.c tetris-game.o
 
 .PHONY: clean
 clean:
-	rm -f *.out *.o board client server test_board test_client_conn tetris-main
+	rm -f *.out *.o board client server test_board test_client_conn tetris-main test-main test_player
