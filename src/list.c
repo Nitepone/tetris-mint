@@ -6,6 +6,7 @@ struct st_list *
 list_create()
 {
   struct st_list * list = malloc(sizeof(struct st_list));
+  return list;
 }
 
 static

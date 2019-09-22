@@ -1,5 +1,5 @@
 .PHONY: all
-all: client server test_board test_client_conn test-main
+all: client server test_board test_client_conn test-main test_player
 
 board: board.c
 	gcc -lncurses -std=c11 -Wall -Wextra board.c -o $@
@@ -29,13 +29,13 @@ player.o: player.c
 	gcc -std=c99 -Wall -Werror -c player.c
 
 test_player: test_player.c player.o list.o
-	gcc -std=c99 -Wall -Werror test_player.c player.o list.o
+	gcc -std=c99 -Wall -Werror test_player.c player.o list.o -o $@
 
 tetris-game.o: tetris-game.c tetris-game.h
 	gcc -std=c99 -Wall -c tetris-game.c
 
 test-main: test-main.c tetris-game.o
-	gcc -std=c99 -Wall tetris-game.o test-main.c
+	gcc -std=c99 -Wall tetris-game.o test-main.c -o $@
 
 .PHONY: clean
 clean:
