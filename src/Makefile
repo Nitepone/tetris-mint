@@ -1,4 +1,4 @@
-CFLAGS=-std=c99 -Wall -Werror -pthread
+CFLAGS=-std=c99 -Wall -pthread
 .PHONY: all
 all: client server test_board test_client_conn test-main test_player
 
