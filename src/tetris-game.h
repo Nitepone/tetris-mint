@@ -9,7 +9,7 @@
 #define TETRIS_GAME_H
 
 #define MAX_BLOCK_UNITS 4
-#define BLOCK_START_POSITION { 4, 20 }
+#define BLOCK_START_POSITION { 4, 21 }
 
 #define ROT_COUNT 4
 #define ROT_NONE 0
@@ -20,6 +20,7 @@
 #define MAX_AUTO_LOWER 3
 
 #define BOARD_HEIGHT 24
+#define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
 
 enum block_type {
@@ -79,13 +80,15 @@ struct game_contents {
 };
 
 struct game_view_data {
+	int points;
+	int lines_cleared;
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
 };
 
 /*
  * Lowers the block down the board by 1
  * @param forced - 0 if move is done by client, non-zero if by game
- * @return - 0 if piece is still alive, else non-zero
+ * @return - 0 if game is still good, -1 on game over
  */
 int lower_block (int forced, struct game_contents *game_contents);
 
@@ -121,6 +124,11 @@ int destroy_game(struct game_contents **game_contents);
  */
 int generate_game_view_data(struct game_view_data **gvd,
 		struct game_contents *gc);
+
+/*
+ * Returns 0 if game is still ongoing
+ */
+int game_over(struct *game_contents);
 
 
 #endif /* !TETRIS_GAME_H */

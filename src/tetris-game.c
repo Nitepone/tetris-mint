@@ -216,17 +216,34 @@ int cull_lines (struct game_contents *game_contents) {
 	return 0;
 }
 
+int game_over(struct game_contents *game_contents) {
+	int i, j, units_in_row;
+	// iterate and count each row/line
+	for (j = BOARD_PLAY_HEIGHT; j < BOARD_HEIGHT; j++) {
+		for (i = 0; i < BOARD_WIDTH; i++) {
+			if (game_contents->board[j][i])
+				return 1;
+		}
+	}
+	return 0;
+}
+
 int place_block (struct game_contents *game_contents) {
 	int i;
 	struct position cur_unit_pos;
 	get_block_positions(game_contents->active_block);
+	// merge block into board array
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = game_contents->active_block->board_units[i];
 		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
 			((int) game_contents->active_block->block_type + 1);
 	}
-	generate_block(&game_contents->active_block);
+	// check for lines
 	cull_lines (game_contents);
+	// check for game over
+	if (game_over(game_contents))
+		return -1;
+	generate_block(&game_contents->active_block);
 	return 0;
 }
 
@@ -279,12 +296,12 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 
 	// handle placing block if needed
 	if (!auto_drop) {
-		place_block(game_contents);
+		return place_block(game_contents);
 	} else {
 		if (game_contents->auto_lower_count++ >= MAX_AUTO_LOWER)
-			place_block(game_contents);
+			return place_block(game_contents);
 	}
-	return -1;
+	return 0;
 }
 
 int generate_game_view_data(struct game_view_data **gvd,
@@ -305,6 +322,9 @@ int generate_game_view_data(struct game_view_data **gvd,
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
 			((int) gc->active_block->block_type ) + 1;
 	}
+	// saves scores into gvd
+	(*gvd)->lines_cleared = gc->lines_cleared;
+	(*gvd)->points = gc->points;
 
 	return 0;
 }

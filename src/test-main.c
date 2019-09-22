@@ -21,6 +21,8 @@ void print_board() {
 		}
 		printf("\n");
 	}
+	printf("Points: %d   Lines: %d", game_contents->points, game_contents->lines_cleared);
+	printf("\n");
 }
 
 int main() {
