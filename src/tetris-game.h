@@ -128,7 +128,7 @@ int generate_game_view_data(struct game_view_data **gvd,
 /*
  * Returns 0 if game is still ongoing
  */
-int game_over(struct *game_contents);
+int game_over(struct game_contents *game_contents);
 
 
 #endif /* !TETRIS_GAME_H */
