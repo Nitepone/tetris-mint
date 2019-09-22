@@ -5,10 +5,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <string.h>
 #include <netdb.h>
 
 #include "client_conn.h"
+#include "render.h"
 
 // for backward compatibility
 #define h_addr h_addr_list[0]
@@ -16,6 +18,8 @@
 // socket to communicate with server
 static int sock_fd = -1;
 struct sockaddr_in servername;
+pthread_t listen_thread;
+
 
 /**
  * Borrowed from GNU Socket Tutorial
@@ -111,6 +115,21 @@ tetris_disconnect()
   close(sock_fd);
 }
 
+void *
+tetris_thread(void * board_ptr)
+{
+  // 240 bytes is enough for the whole board
+  char buffer[256];
+  int (*board)[24] = board_ptr;
+  while( read(sock_fd, buffer, 512) > 0 ){
+    if (strncmp("BOARD", buffer, 5)) {
+      memcpy(board, buffer + 5, 240);
+      render_board(board);
+    }
+  }
+  return 0;
+}
+
 /**
  * start listening to the server for updates to the board
  *
@@ -119,6 +138,5 @@ tetris_disconnect()
 void
 tetris_listen(int board[10][24])
 {
-  // TODO
-  return;
+  pthread_create(&listen_thread, NULL, tetris_thread, board);
 }

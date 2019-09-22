@@ -24,6 +24,8 @@ main(void)
   render_init();
   render_board(board);
 
+  tetris_listen(board);
+
   // wait for ESC key
   char ch;
   while( (ch = getch()) != 27 ){
@@ -48,6 +50,6 @@ main(void)
 
   // cleanup and exit
   render_close();
-  tetris_disconnect(); 
+  tetris_disconnect();
   return 0;
 }

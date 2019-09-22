@@ -9,3 +9,5 @@ void tetris_translate(int x, int y);
 void tetris_rotate(int theta);
 
 void tetris_drop();
+
+void tetris_listen(int board[10][24]);

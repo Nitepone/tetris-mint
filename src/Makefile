@@ -9,19 +9,19 @@ server: server.c player.o list.o tetris-game.o
 	gcc $(CFLAGS) list.o tetris-game.o player.o server.c -o $@
 
 render.o: render.c
-	gcc $(CFLAGS) -c render.c
+	gcc $(CFLAGS) -c render.c -lncurses
 
 client: client.c render.o client_conn.o
-	gcc $(CFLAGS) render.o client_conn.o client.c -o $@ -lncurses
+	gcc $(CFLAGS) render.o client_conn.o client.c -o $@ -lncurses -lpthread
 
 test_board: render.o test_board.c
 	gcc $(CFLAGS) render.o test_board.c -o $@ -lncurses
 
-client_conn.o: client_conn.c
-	gcc $(CFLAGS) -c client_conn.c
+client_conn.o: client_conn.c render.o
+	gcc $(CFLAGS) -c client_conn.c render.o -lncurses -lpthread
 
-test_client_conn: test_client_conn.c client_conn.o
-	gcc $(CFLAGS) test_client_conn.c client_conn.o -o $@
+test_client_conn: test_client_conn.c client_conn.o render.o
+	gcc $(CFLAGS) test_client_conn.c client_conn.o render.o -o $@ -lncurses -lpthread
 
 list.o: list.c
 	gcc $(CFLAGS) -c list.c
