@@ -1,90 +1,42 @@
-#
-# Created by gmakemake (Sparc Sep 12 2019) on Sat Sep 21 20:08:04 2019
-#
+.PHONY: all
+all: client server test_board test_client_conn test-main
 
-#
-# Definitions
-#
+board: board.c
+	gcc -lncurses -std=c11 -Wall -Wextra board.c -o $@
 
-.SUFFIXES:
-.SUFFIXES:	.a .o .c .C .cpp .s .S
-.c.o:
-		$(COMPILE.c) $<
-.C.o:
-		$(COMPILE.cc) $<
-.cpp.o:
-		$(COMPILE.cc) $<
-.S.s:
-		$(CPP) -o $*.s $<
-.s.o:
-		$(COMPILE.cc) $<
-.c.a:
-		$(COMPILE.c) -o $% $<
-		$(AR) $(ARFLAGS) $@ $%
-		$(RM) $%
-.C.a:
-		$(COMPILE.cc) -o $% $<
-		$(AR) $(ARFLAGS) $@ $%
-		$(RM) $%
-.cpp.a:
-		$(COMPILE.cc) -o $% $<
-		$(AR) $(ARFLAGS) $@ $%
-		$(RM) $%
+server: server.c
+	gcc -std=c11 -Wall -Wextra server.c -o $@
 
-CC =		gcc
-CXX =		g++
+render.o: render.c
+	gcc -std=c99 -Wall -Wextra -c render.c
 
-RM = rm -f
-AR = ar
-LINK.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-LINK.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) -c
-COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c
-CPP = $(CPP) $(CPPFLAGS)
-########## Default flags (redefine these with a header.mak file if desired)
-CXXFLAGS =	-ggdb
-CFLAGS =	-ggdb
-CLIBFLAGS =	-lm
-CCLIBFLAGS =	
-########## End of default flags
+client: client.c render.o client_conn.o
+	gcc -std=c99 -Wall -Wextra -lncurses render.o client_conn.o client.c -o $@
 
+test_board: render.o test_board.c
+	gcc -std=c99 -Wall -Werror -lncurses render.o test_board.c -o $@
 
-CPP_FILES =	
-C_FILES =	test-main.c tetris-game.c
-PS_FILES =	
-S_FILES =	
-H_FILES =	tetris-game.h
-SOURCEFILES =	$(H_FILES) $(CPP_FILES) $(C_FILES) $(S_FILES)
-.PRECIOUS:	$(SOURCEFILES)
-OBJFILES =	tetris-game.o 
+client_conn.o: client_conn.c
+	gcc -std=c99 -Wall -Werror -c client_conn.c
 
-#
-# Main targets
-#
+test_client_conn: test_client_conn.c client_conn.o
+	gcc -std=c99 -Wall -Werror test_client_conn.c client_conn.o -o $@
 
-all:	test-main 
+list.o: list.c
+	gcc -std=c99 -Wall -Werror -c list.c
 
-test-main:	test-main.o $(OBJFILES)
-	$(CC) $(CFLAGS) -o test-main test-main.o $(OBJFILES) $(CLIBFLAGS)
+player.o: player.c
+	gcc -std=c99 -Wall -Werror -c player.c
 
-#
-# Dependencies
-#
+test_player: test_player.c player.o list.o
+	gcc -std=c99 -Wall -Werror test_player.c player.o list.o
 
-test-main.o:	tetris-game.c tetris-game.h
-tetris-game.o:	tetris-game.h
+tetris-game.o: tetris-game.c tetris-game.h
+	gcc -std=c99 -Wall -c tetris-game.c
 
-#
-# Housekeeping
-#
+test-main: test-main.c tetris-game.o
+	gcc -std=c99 -Wall tetris-game.o test-main.c
 
-Archive:	archive.tgz
-
-archive.tgz:	$(SOURCEFILES) Makefile
-	tar cf - $(SOURCEFILES) Makefile | gzip > archive.tgz
-
+.PHONY: clean
 clean:
-	-/bin/rm $(OBJFILES) test-main.o core 2> /dev/null
-
-realclean:        clean
-	-/bin/rm -rf test-main 
+	rm -f *.out *.o board client server test_board test_client_conn tetris-main
