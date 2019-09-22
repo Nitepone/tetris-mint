@@ -1,4 +1,5 @@
 #include "tetris-game.h"
+#include <pthread.h>
 
 struct st_player {
 	char * name;
@@ -8,6 +9,8 @@ struct st_player {
 	struct game_view_data * view;
 	/* player's game contents*/
 	struct game_contents * contents;
+	/* the player's clock thread */
+	pthread_t game_clk_thread;
 };
 
 void player_init();

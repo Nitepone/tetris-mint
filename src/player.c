@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "player.h"
@@ -11,6 +13,23 @@ void
 player_init()
 {
         player_list = list_create();
+}
+
+void
+*player_clock(void *input)
+{
+	struct st_player *player = (struct st_player*) input;
+	while(lower_block(1, player->contents)){
+		sleep(1);
+	}
+	return 0;
+}
+
+void
+start_game(struct st_player *player)
+{
+	pthread_create(&player->game_clk_thread, NULL, player_clock,
+			(void *)player);
 }
 
 struct st_player *

@@ -217,7 +217,7 @@ int cull_lines (struct game_contents *game_contents) {
 }
 
 int game_over(struct game_contents *game_contents) {
-	int i, j, units_in_row;
+	int i, j;
 	// iterate and count each row/line
 	for (j = BOARD_PLAY_HEIGHT; j < BOARD_HEIGHT; j++) {
 		for (i = 0; i < BOARD_WIDTH; i++) {
@@ -308,8 +308,6 @@ int generate_game_view_data(struct game_view_data **gvd,
 		struct game_contents *gc) {
 	int i;
 	struct position cur_unit_pos;
-	struct gave_view_data *new_gvd;
-	struct gave_view_data *old_gvd;
 	// alloc new gvd
 	if (!(*gvd)) {
 		*gvd = calloc(1, sizeof(struct game_view_data));
