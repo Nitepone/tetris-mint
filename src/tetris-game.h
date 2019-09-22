@@ -9,12 +9,18 @@
 #define TETRIS_GAME_H
 
 #define MAX_BLOCK_UNITS 4
+#define BLOCK_START_POSITION { 4, 20 }
 
 #define ROT_COUNT 4
 #define ROT_NONE 0
 #define ROT_RIGHT 1
 #define ROT_INVERT 2
 #define ROT_LEFT 3
+
+#define MAX_AUTO_LOWER 3
+
+#define BOARD_HEIGHT 24
+#define BOARD_WIDTH 10
 
 enum block_type {
 	orange,
@@ -65,8 +71,15 @@ static const struct position center_position[BLOCK_TYPE_COUNT] = {
 };
 
 struct game_contents {
-	int board[24][10];
+	int points;
+	int lines_cleared;
+	int auto_lower_count;
+	int board[BOARD_HEIGHT][BOARD_WIDTH];
 	struct active_block *active_block;
+};
+
+struct game_view_data {
+	int board[BOARD_HEIGHT][BOARD_WIDTH];
 };
 
 /*
@@ -78,17 +91,17 @@ int lower_block (int forced, struct game_contents *game_contents);
 
 /*
  * Translates a block left or right a unit
- * @param x - translates the block left if negative, right if positive
+ * @param rightward - zero if block movement is leftward, else rightward
  * @return - 0 if piece moved, else non-zero
  */
-int translate_block (int x, struct game_contents *game_contents);
+int translate_block (int rightward, struct game_contents *game_contents);
 
 /*
  * Rotates a block left or right
- * @param x - rotates the block left if negative, right if positive
+ * @param clockwise - zero rotates the block counter-clockwise, else clockwise
  * @return - 0 if piece rotated, else non-zero
  */
-int rotate_block (int x, struct game_contents *game_contents);
+int rotate_block (int clockwise, struct game_contents *game_contents);
 
 /*
  * Starts a game and takes a double pointer for game contents data
@@ -102,6 +115,12 @@ int new_game(struct game_contents **game_contents);
  * @return 0
  */
 int destroy_game(struct game_contents **game_contents);
+
+/*
+ * Makes a game_view_data with a representation of all active board pieces
+ */
+int generate_game_view_data(struct game_view_data **gvd,
+		struct game_contents *gc);
 
 
 #endif /* !TETRIS_GAME_H */
