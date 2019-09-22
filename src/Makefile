@@ -4,8 +4,8 @@ all: client server test_board test_client_conn test-main test_player
 board: board.c
 	gcc -lncurses -std=c11 -Wall -Wextra board.c -o $@
 
-server: server.c player.o list.o
-	gcc -std=c11 -Wall -Wextra list.o player.o server.c -o $@
+server: server.c player.o list.o tetris-game.o
+	gcc -std=c11 -Wall -Wextra list.o tetris-game.o player.o server.c -o $@
 
 render.o: render.c
 	gcc -std=c99 -Wall -Wextra -c render.c
@@ -25,11 +25,11 @@ test_client_conn: test_client_conn.c client_conn.o
 list.o: list.c
 	gcc -std=c99 -Wall -Werror -c list.c
 
-player.o: player.c
-	gcc -std=c99 -Wall -Werror -c player.c
+player.o: player.c tetris-game.o
+	gcc -std=c99 -Wall -Werror -c player.c tetris-game.o
 
-test_player: test_player.c player.o list.o
-	gcc -std=c99 -Wall -Werror test_player.c player.o list.o -o $@
+test_player: test_player.c player.o list.o tetris-game.o
+	gcc -std=c99 -Wall -Werror test_player.c player.o tetris-game.o list.o -o $@
 
 tetris-game.o: tetris-game.c tetris-game.h
 	gcc -std=c99 -Wall -c tetris-game.c

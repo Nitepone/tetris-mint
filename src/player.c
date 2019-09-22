@@ -3,6 +3,7 @@
 
 #include "list.h"
 #include "player.h"
+#include "tetris-game.h"
 
 static struct st_list * player_list;
 
@@ -30,6 +31,11 @@ player_create(int fd, char * name)
 	struct st_player * player = malloc(sizeof(struct st_player));
 	player->fd = fd;
 	player->name = name;
+	player->contents = malloc(sizeof(struct game_contents));
+	player->view = malloc(sizeof(struct game_view_data));
 	list_append(player_list, player);
 	fprintf(stderr, "There are now %d players", player_list->length);
+
+	new_game(&player->contents);
+	generate_game_view_data(&player->view, player->contents);
 }
