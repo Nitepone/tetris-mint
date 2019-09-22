@@ -11,10 +11,10 @@ render.o: render.c
 	gcc -std=c99 -Wall -Wextra -c render.c
 
 client: client.c render.o client_conn.o
-	gcc -std=c99 -Wall -Wextra -lncurses render.o client_conn.o client.c -o $@
+	gcc -std=c99 -Wall -Wextra render.o client_conn.o client.c -o $@ -lncurses
 
 test_board: render.o test_board.c
-	gcc -std=c99 -Wall -Werror -lncurses render.o test_board.c -o $@
+	gcc -std=c99 -Wall -Werror render.o test_board.c -o $@ -lncurses
 
 client_conn.o: client_conn.c
 	gcc -std=c99 -Wall -Werror -c client_conn.c
