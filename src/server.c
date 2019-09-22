@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include "player.h"
+
 #define PORT    5555
 #define MAXMSG  512
 
@@ -87,6 +89,9 @@ main (void)
   FD_ZERO (&active_fd_set);
   FD_SET (sock, &active_fd_set);
 
+  /* Initialize the player list */
+  player_init();
+
   while (1)
     {
       /* Block until input arrives on one or more active sockets. */
@@ -118,10 +123,13 @@ main (void)
                          "Server: connect from host %s, port %hd.\n",
                          inet_ntoa (clientname.sin_addr),
                          ntohs (clientname.sin_port));
-                write(new, "receiv\u2588", 9);
+
+                /* add the new player */
+                player_create(new, "George");
+
+                // write(new, "receiv\u2588", 9);
                 FD_SET (new, &active_fd_set);
 
-                // fprintf(new, "hey thar");
               }
             else
               {

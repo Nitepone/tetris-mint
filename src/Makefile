@@ -4,8 +4,8 @@ all: client server test_board test_client_conn test-main test_player
 board: board.c
 	gcc -lncurses -std=c11 -Wall -Wextra board.c -o $@
 
-server: server.c
-	gcc -std=c11 -Wall -Wextra server.c -o $@
+server: server.c player.o list.o
+	gcc -std=c11 -Wall -Wextra list.o player.o server.c -o $@
 
 render.o: render.c
 	gcc -std=c99 -Wall -Wextra -c render.c

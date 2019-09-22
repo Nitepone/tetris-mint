@@ -4,5 +4,5 @@ int
 main(void)
 {
   player_init();
-  player_create();
+  player_create(0, "George");
 }

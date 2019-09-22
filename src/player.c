@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "list.h"
 #include "player.h"
@@ -24,8 +25,11 @@ get_player_from_fd(int fd)
 }
 
 void
-player_create()
+player_create(int fd, char * name)
 {
 	struct st_player * player = malloc(sizeof(struct st_player));
+	player->fd = fd;
+	player->name = name;
 	list_append(player_list, player);
+	fprintf(stderr, "There are now %d players", player_list->length);
 }

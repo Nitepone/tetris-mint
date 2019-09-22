@@ -14,4 +14,4 @@ void player_init();
 
 struct st_player * get_player_from_fd(int fd);
 
-void player_create();
+void player_create(int fd, char * name);
