@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "player.h"
 
@@ -68,6 +69,31 @@ read_from_client (int filedes)
 	}
 }
 
+void
+message_client (int fd, char * message)
+{
+  int nbytes = write (fd, message, strlen (message) + 1);
+  if (nbytes < 0) {
+    perror ("write");
+    exit (EXIT_FAILURE);
+  }
+}
+
+void
+send_board (int fd)
+{
+	struct st_player * player = get_player_from_fd(fd);
+	if (player == 0 || player->view == 0 || player->view->board == 0)
+		return;
+	char message[256] = "BOARD";
+	for (int r=0;r<10;r++)
+		for (int c=0;c<24;c++)
+			message[r*24 + c + 5] = player->view->board[r][c];
+	// memcpy(message + 6, player->view->board, 240);
+	*(message + 246) = 0;
+	message_client(fd, message);
+}
+
 int
 main (void)
 {
@@ -126,6 +152,8 @@ main (void)
 
 				/* add the new player */
 				player_create(new, "George");
+				// write(new, "hello world", 12 );
+				send_board(new);
 
 					// write(new, "receiv\u2588", 9);
 					FD_SET (new, &active_fd_set);
