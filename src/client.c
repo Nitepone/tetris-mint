@@ -8,25 +8,14 @@
 
 // local cache of the user's tetris board
 // global variables and static variables are automatically initialized to zero
-int board[10][24];
+int board[BOARD_HEIGHT][BOARD_WIDTH];
 
-int
-main(void)
+///
+// Loop and handle input until ESC is pressed
+///
+void
+input_loop()
 {
-  board[5][17] = 1;
-  board[6][17] = 1;
-  board[7][17] = 1;
-  board[6][16] = 1;
-
-  // connect to the server
-  tetris_connect(HOST, PORT);
-
-  render_init();
-  render_board(board);
-
-  tetris_listen(board);
-
-  // wait for ESC key
   char ch;
   while( (ch = getch()) != 27 ){
     switch(ch){
@@ -47,6 +36,20 @@ main(void)
         break;
     }
   }
+}
+
+int
+main(void)
+{
+  // connect to the server
+  tetris_connect(HOST, PORT);
+
+  render_init();
+  render_board(board);
+
+  tetris_listen(board);
+
+  input_loop();
 
   // cleanup and exit
   render_close();
