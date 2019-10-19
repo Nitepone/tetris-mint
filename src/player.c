@@ -24,7 +24,6 @@ void
 		// while(lower_block(1, player->contents)){
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
-		generate_game_view_data(&player->view, player->contents);
 		player->render(player);
 	}
 	fprintf(stderr, "Player clock thread exited\n");

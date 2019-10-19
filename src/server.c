@@ -93,6 +93,7 @@ read_from_client (int filedes)
 		lower_block(0, player->contents);
 		break;
 	}
+	send_board(player);
 
 	return 0;
 }
@@ -138,6 +139,7 @@ send_board (struct st_player * player)
 	}
 
 	char message[MAXMSG] = "BOARD";
+	generate_game_view_data(&player->view, player->contents);
 	memcpy(message + 5, player->view->board, 960);
 	send_client_nbytes(player->fd, message, 965);
 }
