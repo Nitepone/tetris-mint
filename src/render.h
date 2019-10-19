@@ -10,7 +10,7 @@ void render_init(void);
 
 void render_close(void);
 
-void render_board(int board[BOARD_WIDTH][BOARD_HEIGHT]);
+void render_board(int board[BOARD_HEIGHT][BOARD_WIDTH]);
 
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 

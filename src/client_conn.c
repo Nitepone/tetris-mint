@@ -120,7 +120,7 @@ tetris_thread(void * board_ptr)
 {
   // 240 bytes is enough for the whole board
   char buffer[256];
-  int (*board)[24] = board_ptr;
+  int (*board)[BOARD_WIDTH] = board_ptr;
   while( read(sock_fd, buffer, 512) > 0 ){
     if (strncmp("BOARD", buffer, 5)) {
       memcpy(board, buffer + 5, 240);
@@ -136,7 +136,7 @@ tetris_thread(void * board_ptr)
  * run this as a seperate thread
  */
 void
-tetris_listen(int board[10][24])
+tetris_listen(int board[BOARD_HEIGHT][BOARD_WIDTH])
 {
   pthread_create(&listen_thread, NULL, tetris_thread, board);
 }

@@ -4,15 +4,28 @@
 
 // local cache of the user's tetris board
 // global variables and static variables are automatically initialized to zero
-int board[10][24];
+int board[BOARD_HEIGHT][BOARD_WIDTH];
 
 int
 main(void)
 {
-  board[5][17] = 1;
-  board[6][17] = 1;
-  board[7][17] = 1;
-  board[6][16] = 1;
+  // T piece
+  board[17][5] = 1;
+  board[17][6] = 1;
+  board[17][7] = 1;
+  board[16][6] = 1;
+
+  // L piece
+  board[21][0] = 3;
+  board[22][0] = 3;
+  board[23][0] = 3;
+  board[23][1] = 3;
+
+  // line piece
+  board[23][2] = 4;
+  board[23][3] = 4;
+  board[23][4] = 4;
+  board[23][5] = 4;
 
 
   render_init();

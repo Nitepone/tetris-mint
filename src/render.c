@@ -3,6 +3,9 @@
 
 #include "render.h"
 
+#define CELL_WIDTH 2
+#define BOARD_CH_WIDTH (CELL_WIDTH * BOARD_WIDTH)
+
 static WINDOW * tetris_window;
 
 void
@@ -30,19 +33,19 @@ render_init(void)
   start_color();
 
   // create numbered fg/bg pairs to be used by the COLOR_PAIR macro later
-  init_pair(1, COLOR_CYAN, COLOR_BLACK);
-  init_pair(2, COLOR_RED, COLOR_BLACK);
-  init_pair(3, COLOR_GREEN, COLOR_BLACK);
-  init_pair(4, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(5, COLOR_BLUE, COLOR_BLACK);
-  init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
-  init_pair(7, COLOR_CYAN, COLOR_BLACK);
+  init_pair(1, COLOR_CYAN, COLOR_CYAN);
+  init_pair(2, COLOR_RED, COLOR_RED);
+  init_pair(3, COLOR_GREEN, COLOR_GREEN);
+  init_pair(4, COLOR_YELLOW, COLOR_YELLOW);
+  init_pair(5, COLOR_BLUE, COLOR_BLUE);
+  init_pair(6, COLOR_MAGENTA, COLOR_MAGENTA);
+  init_pair(7, COLOR_CYAN, COLOR_CYAN);
 
   int starty = (LINES - BOARD_HEIGHT) / 2;
-  int startx = (COLS - BOARD_WIDTH) / 2;
+  int startx = (COLS - BOARD_CH_WIDTH) / 2;
 
   refresh();
-  tetris_window = create_newwin(BOARD_HEIGHT, BOARD_WIDTH, starty, startx);
+  tetris_window = create_newwin(BOARD_HEIGHT + 2, BOARD_CH_WIDTH + 2, starty - 1, startx - 1);
 }
 
 void
@@ -55,13 +58,13 @@ render_close(void)
 }
 
 void
-render_board(int board[10][24])
+render_board(int board[BOARD_HEIGHT][BOARD_WIDTH])
 {
   int r, c;
-  for (r=0;r<10;r++)
-    for (c=0;c<24;c++)
+  for (r=0;r<BOARD_HEIGHT;r++)
+    for (c=0;c<BOARD_WIDTH;c++)
       if (board[r][c])
-        mvwaddch(tetris_window, c, r, ACS_BLOCK | COLOR_PAIR(board[c][r]));
+        mvwchgat(tetris_window, 1 + r, 1 + c * CELL_WIDTH, CELL_WIDTH, NULL, board[r][c], NULL);
   wrefresh(tetris_window);
 }
 
