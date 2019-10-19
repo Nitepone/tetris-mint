@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -12,7 +13,6 @@
 
 #include "player.h"
 
-#define PORT 5555
 // message must hold 24 * 10 integers
 #define MAXMSG 1024
 
@@ -26,7 +26,7 @@ void send_board (struct st_player * player);
  * get and bind a socket or exit on failure
  */
 int
-make_socket (uint16_t port)
+make_socket (char * host, uint16_t port)
 {
 	int sock;
 	struct sockaddr_in name;
@@ -50,7 +50,7 @@ make_socket (uint16_t port)
 	/* Give the socket a name. */
 	name.sin_family = AF_INET;
 	name.sin_port = htons (port);
-	name.sin_addr.s_addr = htonl (INADDR_ANY);
+	inet_pton(AF_INET, host, &name.sin_addr.s_addr);
 	if (bind (sock, (struct sockaddr *) &name, sizeof (name)) < 0)
 	{
 		perror ("bind");
@@ -142,9 +142,28 @@ send_board (struct st_player * player)
 	send_client_nbytes(player->fd, message, 965);
 }
 
-int
-main (void)
+void
+usage()
 {
+  fprintf(stderr, "Usage: ./server ADDRESS PORT\n");
+  exit(EXIT_FAILURE);
+}
+
+int
+main(int argc, char * argv[])
+{
+	if( argc != 3)
+		usage();
+
+	char * host = argv[1];
+	char * port = argv[2];
+
+	uintmax_t numeric_port = strtoumax(port, NULL, 10);
+	if (numeric_port == UINTMAX_MAX && errno == ERANGE) {
+		fprintf(stderr, "Provided port is invalid\n");
+		usage();
+	}
+
 	int sock;
 	fd_set active_fd_set, read_fd_set;
 	int i;
@@ -152,7 +171,7 @@ main (void)
 	size_t size;
 
 	/* Create the socket and set it up to accept connections. */
-	sock = make_socket (PORT);
+	sock = make_socket (host, numeric_port);
 	if (listen (sock, 1) < 0)
 		{
 			perror ("listen");

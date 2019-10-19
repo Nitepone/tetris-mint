@@ -1,10 +1,10 @@
+#include <errno.h>
+#include <inttypes.h>
 #include <ncurses.h>
+#include <stdlib.h>
 
 #include "client_conn.h"
 #include "render.h"
-
-#define PORT 5555
-#define HOST "localhost"
 
 // local cache of the user's tetris board
 // global variables and static variables are automatically initialized to zero
@@ -38,11 +38,30 @@ input_loop()
   }
 }
 
-int
-main(void)
+void
+usage()
 {
+  fprintf(stderr, "Usage: ./client ADDRESS PORT\n");
+  exit(EXIT_FAILURE);
+}
+
+int
+main(int argc, char * argv[])
+{
+  if( argc != 3)
+    usage();
+
+  char * host = argv[1];
+  char * port = argv[2];
+
+  uintmax_t numeric_port = strtoumax(port, NULL, 10);
+  if (numeric_port == UINTMAX_MAX && errno == ERANGE) {
+    fprintf(stderr, "Provided port is invalid\n");
+    usage();
+  }
+
   // connect to the server
-  tetris_connect(HOST, PORT);
+  tetris_connect(host, numeric_port);
 
   render_init();
   render_board(board);
