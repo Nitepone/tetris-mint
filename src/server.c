@@ -16,7 +16,11 @@
 // message must hold 24 * 10 integers
 #define MAXMSG 1024
 
-void send_board (int fd);
+#define MSG_TYPE_ROTATE 'R'
+#define MSG_TYPE_TRANSLATE 'T'
+#define MSG_TYPE_LOWER 'L'
+
+void send_board (struct st_player * player);
 
 /**
  * get and bind a socket or exit on failure
@@ -68,9 +72,20 @@ read_from_client (int filedes)
 	// data was successfully read into the buffer
 	fprintf (stderr, "Received from client: `%s'\n", buffer);
 
-	// send board back to client
-	// message_client (filedes, "Hello client");
-	send_board(filedes);
+	// handle input
+	Player * player = get_player_from_fd(filedes);
+	switch(buffer[0]){
+	case MSG_TYPE_ROTATE:
+		rotate_block(buffer[1], player->contents);
+		break;
+	case MSG_TYPE_TRANSLATE:
+		translate_block(buffer[1], player->contents);
+		break;
+	case MSG_TYPE_LOWER:
+		lower_block(0, player->contents);
+		break;
+	}
+
 	return 0;
 }
 
@@ -97,9 +112,8 @@ message_client (int fd, char * message)
 }
 
 void
-send_board (int fd)
+send_board (struct st_player * player)
 {
-	struct st_player * player = get_player_from_fd(fd);
 	if (player == 0) {
 		fprintf(stderr, "Error: No player found for socket\n");
 		return;
@@ -117,7 +131,7 @@ send_board (int fd)
 
 	char message[MAXMSG] = "BOARD";
 	memcpy(message + 5, player->view->board, 960);
-	send_client_nbytes(fd, message, 965);
+	send_client_nbytes(player->fd, message, 965);
 }
 
 int
@@ -177,7 +191,8 @@ main (void)
 						 ntohs (clientname.sin_port));
 
 					/* add the new player */
-					player_create(new, "George");
+					Player * player = player_create(new, "George");
+					player->render = send_board;
 					// write(new, "hello world", 12 );
 					// send_board(new);
 

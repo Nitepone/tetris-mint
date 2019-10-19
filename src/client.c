@@ -23,7 +23,7 @@ input_loop()
         tetris_translate(-1, 0);
         break;
       case 's':
-        tetris_translate(0, 1);
+        tetris_drop();
         break;
       case 'd':
         tetris_translate(1, 0);

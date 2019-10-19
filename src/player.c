@@ -1,11 +1,12 @@
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "list.h"
-#include "player.h"
 #include "tetris-game.h"
+#include "player.h"
 
 static struct st_list * player_list;
 
@@ -19,9 +20,14 @@ void
 *player_clock(void *input)
 {
 	struct st_player *player = (struct st_player*) input;
-	while(lower_block(1, player->contents)){
-		sleep(1);
+	while(1){
+		// while(lower_block(1, player->contents)){
+		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+		lower_block(1, player->contents);
+		generate_game_view_data(&player->view, player->contents);
+		player->render(player);
 	}
+	fprintf(stderr, "Player clock thread exited\n");
 	return 0;
 }
 
@@ -57,7 +63,9 @@ player_create(int fd, char * name)
 	fprintf(stderr, "There are now %d players\n", player_list->length);
 
 	new_game(&player->contents);
-	generate_game_view_data(&player->view, player->contents);
+
+	// start the game!
+	start_game(player);
 
 	return player;
 }

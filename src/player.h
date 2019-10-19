@@ -1,7 +1,10 @@
+#ifndef PLAYER_H
+#define PLAYER_H
+
 #include "tetris-game.h"
 #include <pthread.h>
 
-struct st_player {
+typedef struct st_player {
 	char * name;
 	/* the current file descriptor */
 	int fd;
@@ -11,10 +14,14 @@ struct st_player {
 	struct game_contents * contents;
 	/* the player's clock thread */
 	pthread_t game_clk_thread;
-};
+	/* render function */
+	void (*render)(struct st_player *);
+} Player;
 
 void player_init();
 
 struct st_player * get_player_from_fd(int fd);
 
 struct st_player * player_create(int fd, char * name);
+
+#endif

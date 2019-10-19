@@ -12,6 +12,10 @@
 #include "client_conn.h"
 #include "render.h"
 
+#define MSG_TYPE_ROTATE 'R'
+#define MSG_TYPE_TRANSLATE 'T'
+#define MSG_TYPE_LOWER 'L'
+
 // for backward compatibility
 #define h_addr h_addr_list[0]
 
@@ -70,23 +74,27 @@ get_socket()
 void
 tetris_translate(int x, int y)
 {
+  char xdir = x > 0 ? 1 : 0;
   char message[128];
-  sprintf(message, "TRANSLATE:%d,%d", x, y);
+  sprintf(message, "%c%c", MSG_TYPE_TRANSLATE, xdir);
   tetris_send_message(message);
 }
 
 void
 tetris_rotate(int theta)
 {
+  char dir = theta > 0 ? 1 : 0;
   char message[128];
-  sprintf(message, "ROTATE:%d", theta);
+  sprintf(message, "%c%c", MSG_TYPE_ROTATE, dir);
   tetris_send_message(message);
 }
 
 void
 tetris_drop()
 {
-  tetris_send_message("DROP");
+  char message[128];
+  sprintf(message, "%c", MSG_TYPE_LOWER);
+  tetris_send_message(message);
 }
 
 /**
