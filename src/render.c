@@ -65,7 +65,9 @@ render_board(int board[BOARD_HEIGHT][BOARD_WIDTH])
   for (r=0;r<BOARD_HEIGHT;r++)
     for (c=0;c<BOARD_WIDTH;c++)
       if (board[r][c])
-        mvwchgat(tetris_window, 1 + r, 1 + c * CELL_WIDTH, CELL_WIDTH, 0, board[r][c], NULL);
+        mvwchgat(tetris_window, BOARD_HEIGHT - r, 1 + c * CELL_WIDTH, CELL_WIDTH, 0, board[r][c], NULL);
+      else
+        mvwchgat(tetris_window, BOARD_HEIGHT - r, 1 + c * CELL_WIDTH, CELL_WIDTH, 0, 0, NULL);
   wrefresh(tetris_window);
 }
 
