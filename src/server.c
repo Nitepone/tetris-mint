@@ -12,8 +12,11 @@
 
 #include "player.h"
 
-#define PORT		5555
-#define MAXMSG	512
+#define PORT 5555
+// message must hold 24 * 10 integers
+#define MAXMSG 1024
+
+void send_board (int fd);
 
 /**
  * get and bind a socket or exit on failure
@@ -49,24 +52,38 @@ int
 read_from_client (int filedes)
 {
 	char buffer[MAXMSG];
-	int nbytes;
 
-	nbytes = read (filedes, buffer, MAXMSG);
-	if (nbytes < 0)
-	{
-		/* Read error. */
+	int nbytes = read (filedes, buffer, MAXMSG);
+
+	// exit early if there was an error
+	if (nbytes < 0) {
 		perror ("read");
 		exit (EXIT_FAILURE);
 	}
-	else if (nbytes == 0)
-		/* End-of-file. */
+
+	// exit early if we reached the end-of-file
+	if (nbytes == 0)
 		return -1;
-	else
-	{
-		/* Data read. */
-		fprintf (stderr, "Server: got message: `%s'\n", buffer);
-		return 0;
-	}
+
+	// data was successfully read into the buffer
+	fprintf (stderr, "Received from client: `%s'\n", buffer);
+
+	// send board back to client
+	// message_client (filedes, "Hello client");
+	send_board(filedes);
+	return 0;
+}
+
+void
+send_client_nbytes (int fd, char * message, int n)
+{
+  int bytes_written = write (fd, message, n);
+  fprintf(stderr, "Sent %d bytes to client\n", bytes_written);
+
+  if (bytes_written < 0) {
+    perror ("write");
+    exit (EXIT_FAILURE);
+  }
 }
 
 void
@@ -83,15 +100,24 @@ void
 send_board (int fd)
 {
 	struct st_player * player = get_player_from_fd(fd);
-	if (player == 0 || player->view == 0 || player->view->board == 0)
+	if (player == 0) {
+		fprintf(stderr, "Error: No player found for socket\n");
 		return;
-	char message[256] = "BOARD";
-	for (int r=0;r<10;r++)
-		for (int c=0;c<24;c++)
-			message[r*24 + c + 5] = player->view->board[r][c];
-	// memcpy(message + 6, player->view->board, 240);
-	*(message + 246) = 0;
-	message_client(fd, message);
+	}
+
+	if (player->view == 0) {
+		fprintf(stderr, "Error: No view exists for player.\n");
+		return;
+	}
+
+	if (player->view->board == 0) {
+		fprintf(stderr, "Error: No board exists for player.\n");
+		return;
+	}
+
+	char message[MAXMSG] = "BOARD";
+	memcpy(message + 5, player->view->board, 960);
+	send_client_nbytes(fd, message, 965);
 }
 
 int
@@ -145,15 +171,15 @@ main (void)
 						perror ("accept");
 						exit (EXIT_FAILURE);
 					}
-				fprintf (stderr,
-					 "Server: connect from host %s, port %hd.\n",
-					 inet_ntoa (clientname.sin_addr),
-					 ntohs (clientname.sin_port));
+					fprintf (stderr,
+						 "Server: connect from host %s, port %hd.\n",
+						 inet_ntoa (clientname.sin_addr),
+						 ntohs (clientname.sin_port));
 
-				/* add the new player */
-				player_create(new, "George");
-				// write(new, "hello world", 12 );
-				send_board(new);
+					/* add the new player */
+					player_create(new, "George");
+					// write(new, "hello world", 12 );
+					// send_board(new);
 
 					// write(new, "receiv\u2588", 9);
 					FD_SET (new, &active_fd_set);
@@ -170,3 +196,5 @@ main (void)
 			}
 	}
 }
+
+// vi:noet:noai:sw=0:sts=0:ts=8

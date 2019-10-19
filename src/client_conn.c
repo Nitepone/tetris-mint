@@ -118,14 +118,26 @@ tetris_disconnect()
 void *
 tetris_thread(void * board_ptr)
 {
-  // 240 bytes is enough for the whole board
-  char buffer[256];
+  // 1024 bytes is enough for the whole board
+  char buffer[1024];
+  char message[256];
+  int read_bytes = 0;
   int (*board)[BOARD_WIDTH] = board_ptr;
-  while( read(sock_fd, buffer, 512) > 0 ){
-    if (strncmp("BOARD", buffer, 5)) {
-      memcpy(board, buffer + 5, 240);
+  while( (read_bytes = read(sock_fd, buffer, 1024)) > 0 ){
+    sprintf(message, "Received %d bytes from server, starting with %c%c%c%c%c", read_bytes, buffer[0], buffer[1], buffer[2], buffer[3],buffer[4]);
+    if (memcmp("BOARD", buffer, 5) == 0) {
+      sprintf(message, "Received board from server");
+      memcpy(board, buffer + 5, 960);
+      for (int i=0;i<960;i++)
+        if( *(buffer + 5 + i) != 0 )
+          sprintf(message, "Cell %d is set", i);
+
+      if (board[20][5] == 1){
+        render_message("piece set");
+      }
       render_board(board);
     }
+    render_message(message);
   }
   return 0;
 }
