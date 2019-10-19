@@ -39,6 +39,14 @@ make_socket (uint16_t port)
 		exit (EXIT_FAILURE);
 	}
 
+	// forcefully attaching socket to the port
+	int opt = 1;
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+			&opt, sizeof(opt))) {
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
 	/* Give the socket a name. */
 	name.sin_family = AF_INET;
 	name.sin_port = htons (port);
