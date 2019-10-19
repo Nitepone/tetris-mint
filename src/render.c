@@ -1,5 +1,6 @@
 #include <locale.h>
 #include <ncurses.h>
+#include <string.h>
 
 #include "render.h"
 
@@ -66,6 +67,19 @@ render_board(int board[BOARD_HEIGHT][BOARD_WIDTH])
       if (board[r][c])
         mvwchgat(tetris_window, 1 + r, 1 + c * CELL_WIDTH, CELL_WIDTH, NULL, board[r][c], NULL);
   wrefresh(tetris_window);
+}
+
+///
+// Warning: make sure text is properly null-terminated!
+///
+void
+render_message(char * text)
+{
+  // center y position between bottom of board and bottom of terminal
+  int y = (3 * LINES + BOARD_HEIGHT) / 4;
+  // center x position
+  int x = (COLS - strlen(text)) / 2;
+  mvprintw(y, x, text);
 }
 
 

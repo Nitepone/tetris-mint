@@ -30,6 +30,7 @@ main(void)
 
   render_init();
   render_board(board);
+  render_message("Welcome to Tetris!");
 
   // wait for 'q' key
   while( getch() != 'q' ){}
