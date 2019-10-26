@@ -17,8 +17,8 @@ client: client.c render.o client_conn.o
 test_board: render.o test_board.c
 	gcc $(CFLAGS) render.o test_board.c -o $@ -lncurses
 
-client_conn.o: client_conn.c render.o
-	gcc $(CFLAGS) -c client_conn.c render.o -lncurses -lpthread
+client_conn.o: client_conn.c
+	gcc $(CFLAGS) -c client_conn.c -lncurses -lpthread
 
 test_client_conn: test_client_conn.c client_conn.o render.o
 	gcc $(CFLAGS) test_client_conn.c client_conn.o render.o -o $@ -lncurses -lpthread
@@ -26,8 +26,8 @@ test_client_conn: test_client_conn.c client_conn.o render.o
 list.o: list.c
 	gcc $(CFLAGS) -c list.c
 
-player.o: player.c tetris-game.o
-	gcc $(CFLAGS) -c player.c tetris-game.o
+player.o: player.c
+	gcc $(CFLAGS) -c player.c
 
 test_player: test_player.c player.o list.o tetris-game.o
 	gcc $(CFLAGS) test_player.c player.o tetris-game.o list.o -o $@
