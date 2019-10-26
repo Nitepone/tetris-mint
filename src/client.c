@@ -62,6 +62,7 @@ main(int argc, char * argv[])
 
   // connect to the server
   tetris_connect(host, numeric_port);
+  tetris_register("Elliot");
 
   render_init();
   render_board(board);

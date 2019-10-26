@@ -16,6 +16,7 @@
 // message must hold 24 * 10 integers
 #define MAXMSG 1024
 
+#define MSG_TYPE_REGISTER 'U'
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
@@ -82,7 +83,14 @@ read_from_client (int filedes)
 
 	// handle input
 	Player * player = get_player_from_fd(filedes);
+	char name[16];
 	switch(buffer[0]){
+	case MSG_TYPE_REGISTER:
+		sscanf( buffer + 1, "%15s", name);
+		player = player_create(filedes, name);
+		player->render = send_board;
+		printf("Registered new user: %s\n", name);
+		break;
 	case MSG_TYPE_ROTATE:
 		rotate_block(buffer[1], player->contents);
 		break;
@@ -199,45 +207,39 @@ main(int argc, char * argv[])
 
 		/* Service all the sockets with input pending. */
 		for (i = 0; i < FD_SETSIZE; ++i)
-			if (FD_ISSET (i, &read_fd_set))
+		{
+			// exit early if the file descriptor i is not in the set
+			if (!FD_ISSET (i, &read_fd_set))
+				continue;
+
+			// for new connections:
+			// - accept the connection
+			// - create a file descriptor for the connection
+			// - add the file descriptor to the file descriptor set
+			if (i == sock)
 			{
-				if (i == sock)
+				size = sizeof (clientname);
+				int new = accept (sock,
+					(struct sockaddr *) &clientname,
+					(socklen_t *) &size);
+				if (new < 0)
 				{
-					/* Connection request on original socket. */
-					int new;
-					size = sizeof (clientname);
-					new = accept (sock,
-						(struct sockaddr *) &clientname,
-						(socklen_t *) &size);
-					if (new < 0)
-					{
-						perror ("accept");
-						exit (EXIT_FAILURE);
-					}
-					fprintf (stderr,
-						 "Server: connect from host %s, port %hd.\n",
-						 inet_ntoa (clientname.sin_addr),
-						 ntohs (clientname.sin_port));
-
-					/* add the new player */
-					Player * player = player_create(new, "George");
-					player->render = send_board;
-					// write(new, "hello world", 12 );
-					// send_board(new);
-
-					// write(new, "receiv\u2588", 9);
-					FD_SET (new, &active_fd_set);
+					perror ("accept");
+					exit (EXIT_FAILURE);
 				}
-				else
-				{
-					/* Data arriving on an already-connected socket. */
-					if (read_from_client (i) < 0)
-					{
-						close (i);
-						FD_CLR (i, &active_fd_set);
-					}
-				}
+				fprintf (stderr,
+					 "Server: connect from host %s, port %hd.\n",
+					 inet_ntoa (clientname.sin_addr),
+					 ntohs (clientname.sin_port));
+
+				FD_SET (new, &active_fd_set);
 			}
+			// handle data on sockets already in the file descriptor set
+			else if (read_from_client (i) < 0) {
+				close (i);
+				FD_CLR (i, &active_fd_set);
+			}
+		}
 	}
 }
 

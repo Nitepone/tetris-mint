@@ -12,6 +12,7 @@
 #include "client_conn.h"
 #include "render.h"
 
+#define MSG_TYPE_REGISTER 'U'
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
@@ -115,6 +116,17 @@ tetris_connect(char * host, int port)
       perror ("connect (client)");
       exit (EXIT_FAILURE);
     }
+}
+
+/**
+ * register
+ */
+void
+tetris_register(char * username)
+{
+  char message[128];
+  sprintf(message, "%c%s", MSG_TYPE_REGISTER, username);
+  tetris_send_message(message);
 }
 
 void
