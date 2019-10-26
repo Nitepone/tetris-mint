@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #include "list.h"
-#include "tetris-game.h"
+#include "tetris_game.h"
 #include "player.h"
 
 static struct st_list * player_list;

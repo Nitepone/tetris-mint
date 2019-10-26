@@ -1,12 +1,12 @@
 CFLAGS=-std=c99 -Wall -pthread
 .PHONY: all
-all: client server test_board test_client_conn test-main test_player
+all: client server test_board test_client_conn solo_main test_player
 
 board: board.c
 	gcc $(CFLAGS) board.c -o $@ -lncurses
 
-server: server.c player.o list.o tetris-game.o
-	gcc $(CFLAGS) list.o tetris-game.o player.o server.c -o $@
+server: server.c player.o list.o tetris_game.o
+	gcc $(CFLAGS) list.o tetris_game.o player.o server.c -o $@
 
 render.o: render.c
 	gcc $(CFLAGS) -c render.c -lncurses
@@ -29,15 +29,15 @@ list.o: list.c
 player.o: player.c
 	gcc $(CFLAGS) -c player.c
 
-test_player: test_player.c player.o list.o tetris-game.o
-	gcc $(CFLAGS) test_player.c player.o tetris-game.o list.o -o $@
+test_player: test_player.c player.o list.o tetris_game.o
+	gcc $(CFLAGS) test_player.c player.o tetris_game.o list.o -o $@
 
-tetris-game.o: tetris-game.c tetris-game.h
-	gcc $(CFLAGS) -c tetris-game.c
+tetris_game.o: tetris_game.c tetris_game.h
+	gcc $(CFLAGS) -c tetris_game.c
 
-test-main: test-main.c tetris-game.o
-	gcc $(CFLAGS) tetris-game.o test-main.c -o $@
+solo_main: solo_main.c tetris_game.o
+	gcc $(CFLAGS) tetris_game.o solo_main.c -o $@
 
 .PHONY: clean
 clean:
-	rm -f *.out *.o board client server test_board test_client_conn tetris-main test-main test_player
+	rm -f *.out *.o board client server test_board test_client_conn tetris-main solo_main test_player

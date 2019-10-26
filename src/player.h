@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "tetris-game.h"
+#include "tetris_game.h"
 #include <pthread.h>
 
 typedef struct st_player {

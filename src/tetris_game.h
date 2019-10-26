@@ -130,5 +130,7 @@ int generate_game_view_data(struct game_view_data **gvd,
  */
 int game_over(struct game_contents *game_contents);
 
+int hard_drop(struct game_contents *game_contents);
+
 
 #endif /* !TETRIS_GAME_H */
