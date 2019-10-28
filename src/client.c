@@ -108,8 +108,13 @@ main(int argc, char * argv[])
   tetris_register(username);
   tetris_opponent(opponent);
 
-  render_init();
-  render_board(board);
+  char * names[2];
+  names[0] = username;
+  names[1] = opponent;
+
+  render_init(2, names);
+  render_board(username, board);
+  render_board(opponent, board);
 
   tetris_listen(board);
 

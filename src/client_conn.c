@@ -166,23 +166,21 @@ void *
 tetris_thread(void * board_ptr)
 {
   // 1024 bytes is enough for the whole board
-  char buffer[1024];
+  char buffer[1280];
+  // ncurses message to display to user
   char message[256];
   int read_bytes = 0;
   int (*board)[BOARD_WIDTH] = board_ptr;
-  while( (read_bytes = read(sock_fd, buffer, 1024)) > 0 ){
+  while( (read_bytes = read(sock_fd, buffer, 1280)) > 0 ){
     sprintf(message, "Received %d bytes from server, starting with %c%c%c%c%c", read_bytes, buffer[0], buffer[1], buffer[2], buffer[3],buffer[4]);
     if (memcmp("BOARD", buffer, 5) == 0) {
-      sprintf(message, "Received board from server");
-      memcpy(board, buffer + 5, 960);
-      for (int i=0;i<960;i++)
-        if( *(buffer + 5 + i) != 0 )
-          sprintf(message, "Cell %d is set", i);
 
-      if (board[20][5] == 1){
-        render_message("piece set");
-      }
-      render_board(board);
+      // get the player associated with the board
+      uint8_t name_length = buffer[5];
+      char * board_name = buffer + 6;
+
+      memcpy(board, buffer + 7 + name_length, 960);
+      render_board(board_name, board);
     }
     render_message(message);
   }

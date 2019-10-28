@@ -12,18 +12,7 @@
 #include <string.h>
 
 #include "player.h"
-
-// message must hold 24 * 10 integers
-#define MAXMSG 1024
-
-#define MSG_TYPE_REGISTER 'U'
-#define MSG_TYPE_OPPONENT 'O'
-#define MSG_TYPE_ROTATE 'R'
-#define MSG_TYPE_TRANSLATE 'T'
-#define MSG_TYPE_LOWER 'L'
-#define MSG_TYPE_DROP 'D'
-
-void send_board (struct st_player * player);
+#include "message.h"
 
 /**
  * get and bind a socket or exit on failure
@@ -93,6 +82,7 @@ read_from_client (int filedes)
 	char * end = buffer + nbytes;
 	char * cursor = buffer;
 
+	Player * opponent;
 	Player * player = get_player_from_fd(filedes);
 	char name[16];
 
@@ -127,6 +117,9 @@ read_from_client (int filedes)
 			break;
 		case MSG_TYPE_OPPONENT:
 			fprintf(stderr, "Opponent: %s\n", cursor + 1);
+			opponent = player_get_by_name(cursor + 1);
+			if (opponent)
+				player_set_opponent(player, opponent);
 			break;
 		default:
 			fprintf(stderr, "read_from_client:_received unrecognized "
@@ -136,7 +129,13 @@ read_from_client (int filedes)
 		// increment the cursor past the message body end
 		cursor += message_size;
 	}
-	send_board(player);
+
+	// send the board to the player
+	send_board(player->fd, player);
+
+	// send the board to the player's opponent
+	if (player->opponent)
+		send_board(player->opponent->fd, player);
 
 	return 0;
 }
@@ -163,29 +162,6 @@ message_client (int fd, char * message)
   }
 }
 
-void
-send_board (struct st_player * player)
-{
-	if (player == 0) {
-		fprintf(stderr, "Error: No player found for socket\n");
-		return;
-	}
-
-	if (player->view == 0) {
-		fprintf(stderr, "Error: No view exists for player.\n");
-		return;
-	}
-
-	if (player->view->board == 0) {
-		fprintf(stderr, "Error: No board exists for player.\n");
-		return;
-	}
-
-	char message[MAXMSG] = "BOARD";
-	generate_game_view_data(&player->view, player->contents);
-	memcpy(message + 5, player->view->board, 960);
-	send_client_nbytes(player->fd, message, 965);
-}
 
 void
 usage()

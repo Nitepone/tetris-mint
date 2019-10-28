@@ -5,8 +5,8 @@ all: client server test_board test_client_conn solo_main test_player
 board: board.c
 	gcc $(CFLAGS) board.c -o $@ -lncurses
 
-server: server.c player.o list.o tetris_game.o
-	gcc $(CFLAGS) list.o tetris_game.o player.o server.c -o $@
+server: server.c player.o list.o tetris_game.o message.o
+	gcc $(CFLAGS) list.o tetris_game.o message.o player.o server.c -o $@
 
 render.o: render.c
 	gcc $(CFLAGS) -c render.c -lncurses
@@ -37,6 +37,9 @@ tetris_game.o: tetris_game.c tetris_game.h
 
 solo_main: solo_main.c tetris_game.o
 	gcc $(CFLAGS) tetris_game.o solo_main.c -o $@
+
+message.o: message.c
+	gcc $(CFLAGS) -c message.c
 
 .PHONY: clean
 clean:

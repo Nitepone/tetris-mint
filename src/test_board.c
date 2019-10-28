@@ -27,9 +27,12 @@ main(void)
   board[23][4] = 4;
   board[23][5] = 4;
 
+  char * username = "Elliot";
+  char * names[1];
+  names[0] = username;
 
-  render_init();
-  render_board(board);
+  render_init(1, names);
+  render_board(username, board);
   render_message("Welcome to Tetris!");
 
   // wait for 'q' key
