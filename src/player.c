@@ -48,7 +48,6 @@ struct st_player *
 get_player_from_fd(int fd)
 {
 	struct st_player * player;
-	fprintf(stderr, "Player list length: %d\n", player_list->length);
 	for (int i=0;i<player_list->length;i++) {
 		player = (struct st_player *)(list_get(player_list, i)->target);
 		if (player->fd == fd)

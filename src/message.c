@@ -15,7 +15,7 @@ int
 message_nbytes(int socket_fd, char * bytes, int n)
 {
 	int bytes_written = write (socket_fd, bytes, n);
-	fprintf(stderr, "Sent %d bytes\n", bytes_written);
+	fprintf(stderr, "message_nbytes: sent %d bytes\n", bytes_written);
 
 	if (bytes_written < 0) {
 		perror ("write");

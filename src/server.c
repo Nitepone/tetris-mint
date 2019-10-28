@@ -139,29 +139,6 @@ read_from_client (int filedes)
 }
 
 void
-send_client_nbytes (int fd, char * message, int n)
-{
-  int bytes_written = write (fd, message, n);
-  fprintf(stderr, "Sent %d bytes to client\n", bytes_written);
-
-  if (bytes_written < 0) {
-    perror ("write");
-    exit (EXIT_FAILURE);
-  }
-}
-
-void
-message_client (int fd, char * message)
-{
-  int nbytes = write (fd, message, strlen (message) + 1);
-  if (nbytes < 0) {
-    perror ("write");
-    exit (EXIT_FAILURE);
-  }
-}
-
-
-void
 usage()
 {
   fprintf(stderr, "Usage: ./server [-h] [-a ADDRESS] [-p PORT]\n");
@@ -264,7 +241,7 @@ main(int argc, char * argv[])
 					exit (EXIT_FAILURE);
 				}
 				fprintf (stderr,
-					 "Server: new connection from host %s, port %hd.\n",
+					 "main: new connection from host %s, port %hd.\n",
 					 inet_ntoa (clientname.sin_addr),
 					 ntohs (clientname.sin_port));
 
@@ -272,7 +249,7 @@ main(int argc, char * argv[])
 			}
 			// handle data on sockets already in the file descriptor set
 			else if (read_from_client (i) < 0) {
-				fprintf(stderr, "Received EOF\n");
+				fprintf(stderr, "main: received EOF\n");
 				close (i);
 				FD_CLR (i, &active_fd_set);
 			}
