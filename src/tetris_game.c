@@ -41,13 +41,13 @@ int destroy_block (struct active_block **block) {
 }
 
 /*
- * Generates a random block and destroys old
+ * Generates a random block
  */
 int generate_block (struct active_block **block) {
 	// allocate and fill
 	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
 	(*block)->position = ((struct position) BLOCK_START_POSITION);
-	(*block)->rotation_angle = ROT_NONE;
+	(*block)->rotation = none;
 	return 0;
 }
 
@@ -79,20 +79,20 @@ int get_bc_block_pos (struct active_block *block) {
 		// get one offset
 		cur_offset_pos = block_offsets[block->block_type][i];
 		// rotate
-		switch (block->rotation_angle) {
-			case ROT_NONE:
+		switch (block->rotation) {
+			case none:
 				x = cur_offset_pos.x;
 				y = cur_offset_pos.y;
 				break;
-			case ROT_RIGHT:
+			case right:
 				x = cur_offset_pos.y;
 				y = (-1) * cur_offset_pos.x;
 				break;
-			case ROT_INVERT:
+			case invert:
 				x = (-1) * cur_offset_pos.x;
 				y = (-1) * cur_offset_pos.y;
 				break;
-			case ROT_LEFT:
+			case left:
 				x = (-1) * cur_offset_pos.y;
 				y = cur_offset_pos.x;
 				break;
@@ -272,9 +272,9 @@ int rotate_block (int clockwise, struct game_contents *game_contents) {
 	if (clockwise)
 		x = 1;
 	else
-		x = (ROT_COUNT-1);
+		x = (ROT_COUNT-1); // effectively (-1) as it is remaindered
 	// perform rotation
-	new_block->rotation_angle = (new_block->rotation_angle + x) % ROT_COUNT;
+	new_block->rotation = (new_block->rotation + x) % ROT_COUNT;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
 		temp_block_p = game_contents->active_block;

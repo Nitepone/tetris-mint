@@ -11,17 +11,19 @@
 #define MAX_BLOCK_UNITS 4
 #define BLOCK_START_POSITION { 4, 21 }
 
-#define ROT_COUNT 4
-#define ROT_NONE 0
-#define ROT_RIGHT 1
-#define ROT_INVERT 2
-#define ROT_LEFT 3
-
 #define MAX_AUTO_LOWER 3
 
 #define BOARD_HEIGHT 24
 #define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
+
+enum rotation {
+	none,
+	right,
+	invert,
+	left,
+};
+#define ROT_COUNT 4
 
 enum block_type {
 	orange,
@@ -41,7 +43,7 @@ struct position {
 
 struct active_block {
 	enum block_type block_type;
-	int rotation_angle;
+	enum rotation rotation;
 	/* position of block center */
 	struct position position;
 	struct position board_units[MAX_BLOCK_UNITS];
