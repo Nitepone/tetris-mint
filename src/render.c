@@ -47,6 +47,9 @@ render_init(int n, char * names[])
   // suppress echo of user entered characters
   noecho();
 
+  // enable reading of function and arrow keys
+  keypad(stdscr, TRUE);
+
   // hide the cursor
   curs_set(0);
 
