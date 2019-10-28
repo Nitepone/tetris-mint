@@ -23,13 +23,16 @@ input_loop()
   while( (ch = getch()) != 27 ){
     switch(ch){
       case 'a':
-        tetris_translate(-1, 0);
+        tetris_translate(-1);
         break;
-      case 's':
+      case 'w':
         tetris_drop();
         break;
+      case 's':
+        tetris_lower(1);
+        break;
       case 'd':
-        tetris_translate(1, 0);
+        tetris_translate(1);
         break;
       case 'q':
         tetris_rotate(-1);

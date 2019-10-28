@@ -18,6 +18,7 @@
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
+#define MSG_TYPE_DROP 'D'
 
 // for backward compatibility
 #define h_addr h_addr_list[0]
@@ -80,11 +81,19 @@ get_socket()
 }
 
 void
-tetris_translate(int x, int y)
+tetris_translate(int x)
 {
   char xdir = x > 0 ? 1 : 0;
   char message[128];
   sprintf(message, "%c%c", MSG_TYPE_TRANSLATE, xdir);
+  tetris_send_message(message);
+}
+
+void
+tetris_lower()
+{
+  char message[8];
+  sprintf(message, "%c", MSG_TYPE_LOWER);
   tetris_send_message(message);
 }
 
@@ -101,7 +110,7 @@ void
 tetris_drop()
 {
   char message[128];
-  sprintf(message, "%c", MSG_TYPE_LOWER);
+  sprintf(message, "%c", MSG_TYPE_DROP);
   tetris_send_message(message);
 }
 

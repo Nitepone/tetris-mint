@@ -7,7 +7,9 @@ void tetris_connect(char * host, int port);
 
 void tetris_disconnect();
 
-void tetris_translate(int x, int y);
+void tetris_translate(int x);
+
+void tetris_lower();
 
 void tetris_rotate(int theta);
 

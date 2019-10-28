@@ -21,6 +21,7 @@
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
+#define MSG_TYPE_DROP 'D'
 
 void send_board (struct st_player * player);
 
@@ -63,7 +64,7 @@ make_socket (char * host, uint16_t port)
 }
 
 /**
- * Returns -1 if EOF is received or 0 otherwise
+ * Returns -1 if EOF is received or 0 otherwise.
  */
 int
 read_from_client (int filedes)
@@ -72,6 +73,7 @@ read_from_client (int filedes)
 
 	char buffer[MAXMSG];
 
+	// remember that more than one TCP packet may be read by this command
 	int nbytes = read (filedes, buffer, MAXMSG);
 
 	// exit early if there was an error
@@ -119,6 +121,9 @@ read_from_client (int filedes)
 			break;
 		case MSG_TYPE_LOWER:
 			lower_block(0, player->contents);
+			break;
+		case MSG_TYPE_DROP:
+			hard_drop (player->contents);
 			break;
 		case MSG_TYPE_OPPONENT:
 			fprintf(stderr, "Opponent: %s\n", cursor + 1);
