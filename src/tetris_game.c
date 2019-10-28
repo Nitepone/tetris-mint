@@ -68,9 +68,47 @@ int new_game (struct game_contents **game_contents) {
 }
 
 /*
+ * Gets edge centric block positions
+ * For use with blocks like the square block or line piece
+ *
+ * This rotates differently due to the "+ 1" when calculating the offsets
+ */
+int get_ec_block_pos (struct active_block *block) {
+	int x, y, i;
+	struct position cur_offset_pos;
+	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+		// get one offset
+		cur_offset_pos = block_offsets[block->block_type][i];
+		// rotate
+		switch (block->rotation) {
+			case none:
+				x = cur_offset_pos.x;
+				y = cur_offset_pos.y;
+				break;
+			case right:
+				x = cur_offset_pos.y;
+				y = (-1) * cur_offset_pos.x + 1;
+				break;
+			case invert:
+				x = (-1) * cur_offset_pos.x + 1;
+				y = (-1) * cur_offset_pos.y + 1;
+				break;
+			case left:
+				x = (-1) * cur_offset_pos.y + 1;
+				y = cur_offset_pos.x;
+				break;
+		}
+		// convert offset to position and save
+		block->board_units[i] = ((struct position) {
+			block->position.x + x,
+			block->position.y + y
+		});
+	}
+	return 0;
+}
+
+/*
  * Gets "block centric" block positions based on offsets and rotation
- * ( Does not work proper for line and square as the center is not a single
- *   block. It will work though, just violates pure Tetris rules )
  */
 int get_bc_block_pos (struct active_block *block) {
 	int x, y, i;
@@ -118,11 +156,11 @@ int get_block_positions (struct active_block *block) {
 		case cleve:
 		case rhode:
 		case teewee:
+			return get_bc_block_pos(block);
 		// special blocks
-		// TODO: Handle these correctly
 		case smashboy:
 		case hero:
-			return get_bc_block_pos(block);
+			return get_ec_block_pos(block);
 	}
 	return 0;
 }
@@ -328,7 +366,8 @@ int generate_game_view_data(struct game_view_data **gvd,
 	if (!(*gvd)) {
 		*gvd = calloc(1, sizeof(struct game_view_data));
 	}
-	memcpy((*gvd)->board, gc->board, sizeof(int) * 24 * 10);
+	memcpy((*gvd)->board, gc->board, sizeof(int) *
+			BOARD_WIDTH * BOARD_HEIGHT);
 	// draw current piece on gvd
 	get_block_positions(gc->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
