@@ -197,12 +197,36 @@ usage()
 int
 main(int argc, char * argv[])
 {
-	if( argc != 3)
-		usage();
+	char host[128] = "127.0.0.1";
+	char port[6] = "5555";
 
-	char * host = argv[1];
-	char * port = argv[2];
+	// Parse command line flags. The optstring passed to getopt has a preceding
+	// colon to tell getopt that missing flag values should be treated
+	// differently than unknown flags. The proceding colons indicate that flags
+	// must have a value.
+	int opt;
+	while((opt = getopt(argc, argv, ":h:p:")) != -1)
+	{
+		switch(opt)
+		{
+		case 'h':
+			strncpy(host, optarg, 127);
+			printf("host: %s\n", optarg);
+			break;
+		case 'p':
+			strncpy(port, optarg, 5);
+			printf("port: %s\n", optarg);
+			break;
+		case ':':
+			printf("option -%c needs a value\n", optopt);
+			break;
+		case '?':
+			printf("unknown option: %c\n", optopt);
+			break;
+		}
+	}
 
+	// convert the string port to a number port
 	uintmax_t numeric_port = strtoumax(port, NULL, 10);
 	if (numeric_port == UINTMAX_MAX && errno == ERANGE) {
 		fprintf(stderr, "Provided port is invalid\n");
