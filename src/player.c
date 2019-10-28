@@ -25,8 +25,9 @@ void
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
 
-		// send board to player
-		player->render(player->fd, player);
+		// send board to player and clear socket if a failure occurs
+		if (player->render(player->fd, player) == EXIT_FAILURE)
+			player->fd = -1;
 
 		// send board to opponent if one exists
 		if( player->opponent )

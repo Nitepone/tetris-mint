@@ -58,8 +58,6 @@ make_socket (char * host, uint16_t port)
 int
 read_from_client (int filedes)
 {
-	fprintf(stderr, "read_from_client()\n");
-
 	char buffer[MAXMSG];
 
 	// remember that more than one TCP packet may be read by this command

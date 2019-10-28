@@ -31,6 +31,11 @@ message_nbytes(int socket_fd, char * bytes, int n)
 int
 send_board (int socket_fd, struct st_player * player)
 {
+	if (socket_fd < 0) {
+		fprintf(stderr, "send_board: skipping invalid file descriptor %d\n", socket_fd);
+		return EXIT_FAILURE;
+	}
+
 	if (player == 0) {
 		fprintf(stderr, "Error: No player found for socket\n");
 		return EXIT_FAILURE;
