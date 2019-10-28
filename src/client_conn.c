@@ -13,6 +13,7 @@
 #include "render.h"
 
 #define MSG_TYPE_REGISTER 'U'
+#define MSG_TYPE_OPPONENT 'O'
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
@@ -126,6 +127,17 @@ tetris_register(char * username)
 {
   char message[128];
   sprintf(message, "%c%s", MSG_TYPE_REGISTER, username);
+  tetris_send_message(message);
+}
+
+/**
+ * select opponent by username
+ */
+void
+tetris_opponent(char * username)
+{
+  char message[128];
+  sprintf(message, "%c%s", MSG_TYPE_OPPONENT, username);
   tetris_send_message(message);
 }
 

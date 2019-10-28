@@ -17,6 +17,7 @@
 #define MAXMSG 1024
 
 #define MSG_TYPE_REGISTER 'U'
+#define MSG_TYPE_OPPONENT 'O'
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
