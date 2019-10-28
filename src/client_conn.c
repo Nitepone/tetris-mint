@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <netdb.h>
+#include <inttypes.h>
 
 #include "client_conn.h"
 #include "render.h"
@@ -49,9 +50,14 @@ init_sockaddr (struct sockaddr_in *name,
 }
 
 void
-tetris_send_message (char * message)
+tetris_send_message (char * body)
 {
-  int nbytes = write (sock_fd, message, strlen (message) + 1);
+  uint16_t len = strlen (body) + 1;
+  char message[128];
+  message[0] = len >> 8;
+  message[1] = len & 0xFF;
+  memcpy(message + 2, body, len);
+  int nbytes = write (sock_fd, message, len + 2);
   if (nbytes < 0) {
     perror ("write");
     exit (EXIT_FAILURE);

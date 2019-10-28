@@ -62,9 +62,14 @@ make_socket (char * host, uint16_t port)
 	return sock;
 }
 
+/**
+ * Returns -1 if EOF is received or 0 otherwise
+ */
 int
 read_from_client (int filedes)
 {
+	fprintf(stderr, "read_from_client()\n");
+
 	char buffer[MAXMSG];
 
 	int nbytes = read (filedes, buffer, MAXMSG);
@@ -80,27 +85,51 @@ read_from_client (int filedes)
 		return -1;
 
 	// data was successfully read into the buffer
-	fprintf (stderr, "Received from client: `%s'\n", buffer);
+	fprintf (stderr, "read_from_client: received %d bytes from client\n", nbytes);
 
-	// handle input
+
+	char * end = buffer + nbytes;
+	char * cursor = buffer;
+
 	Player * player = get_player_from_fd(filedes);
 	char name[16];
-	switch(buffer[0]){
-	case MSG_TYPE_REGISTER:
-		sscanf( buffer + 1, "%15s", name);
-		player = player_create(filedes, name);
-		player->render = send_board;
-		printf("Registered new user: %s\n", name);
-		break;
-	case MSG_TYPE_ROTATE:
-		rotate_block(buffer[1], player->contents);
-		break;
-	case MSG_TYPE_TRANSLATE:
-		translate_block(buffer[1], player->contents);
-		break;
-	case MSG_TYPE_LOWER:
-		lower_block(0, player->contents);
-		break;
+
+	while( cursor < end )
+	{
+		// the first two bytes of the message should be used to indicate the
+		// remaining number of bytes in the message
+		uint16_t message_size = (buffer[0] << 8) + buffer[1];
+		fprintf (stderr, "read_from_client: message size is %d\n", message_size);
+
+		// increment the cursor to the start of the message body
+		cursor += 2;
+		fprintf( stderr, "message body: %s\n", cursor);
+
+		switch(cursor[0]){
+		case MSG_TYPE_REGISTER:
+			sscanf( cursor + 1, "%15s", name);
+			player = player_create(filedes, name);
+			player->render = send_board;
+			break;
+		case MSG_TYPE_ROTATE:
+			rotate_block(cursor[1], player->contents);
+			break;
+		case MSG_TYPE_TRANSLATE:
+			translate_block(cursor[1], player->contents);
+			break;
+		case MSG_TYPE_LOWER:
+			lower_block(0, player->contents);
+			break;
+		case MSG_TYPE_OPPONENT:
+			fprintf(stderr, "Opponent: %s\n", cursor + 1);
+			break;
+		default:
+			fprintf(stderr, "read_from_client:_received unrecognized "
+			       "message with starting byte 0x%x", cursor[0]);
+		}
+
+		// increment the cursor past the message body end
+		cursor += message_size;
 	}
 	send_board(player);
 
@@ -229,7 +258,7 @@ main(int argc, char * argv[])
 					exit (EXIT_FAILURE);
 				}
 				fprintf (stderr,
-					 "Server: connect from host %s, port %hd.\n",
+					 "Server: new connection from host %s, port %hd.\n",
 					 inet_ntoa (clientname.sin_addr),
 					 ntohs (clientname.sin_port));
 
@@ -237,6 +266,7 @@ main(int argc, char * argv[])
 			}
 			// handle data on sockets already in the file descriptor set
 			else if (read_from_client (i) < 0) {
+				fprintf(stderr, "Received EOF\n");
 				close (i);
 				FD_CLR (i, &active_fd_set);
 			}

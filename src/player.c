@@ -59,7 +59,7 @@ player_create(int fd, char * name)
 	player->contents = malloc(sizeof(struct game_contents));
 	player->view = malloc(sizeof(struct game_view_data));
 	list_append(player_list, player);
-	fprintf(stderr, "There are now %d players\n", player_list->length);
+	fprintf(stderr, "player_create: There are now %d players\n", player_list->length);
 
 	new_game(&player->contents);
 
