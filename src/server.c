@@ -190,7 +190,7 @@ send_board (struct st_player * player)
 void
 usage()
 {
-  fprintf(stderr, "Usage: ./server ADDRESS PORT\n");
+  fprintf(stderr, "Usage: ./server [-h] [-a ADDRESS] [-p PORT]\n");
   exit(EXIT_FAILURE);
 }
 
@@ -205,13 +205,16 @@ main(int argc, char * argv[])
 	// differently than unknown flags. The proceding colons indicate that flags
 	// must have a value.
 	int opt;
-	while((opt = getopt(argc, argv, ":h:p:")) != -1)
+	while((opt = getopt(argc, argv, ":ha:p:")) != -1)
 	{
 		switch(opt)
 		{
 		case 'h':
+			usage();
+			break;
+		case 'a':
 			strncpy(host, optarg, 127);
-			printf("host: %s\n", optarg);
+			printf("address: %s\n", optarg);
 			break;
 		case 'p':
 			strncpy(port, optarg, 5);

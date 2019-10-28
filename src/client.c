@@ -47,7 +47,7 @@ input_loop()
 void
 usage()
 {
-  fprintf(stderr, "Usage: ./client ADDRESS PORT\n");
+  fprintf(stderr, "Usage: ./client [-h] [-u USERNAME] [-o OPPONENT] [-a ADDRESS] [-p PORT]\n");
   exit(EXIT_FAILURE);
 }
 
@@ -64,10 +64,13 @@ main(int argc, char * argv[])
   // differently than unknown flags. The proceding colons indicate that flags
   // must have a value.
   int opt;
-  while((opt = getopt(argc, argv, ":u:o:h:p:")) != -1)
+  while((opt = getopt(argc, argv, ":hu:o:a:p:")) != -1)
   {
     switch(opt)
     {
+    case 'h':
+      usage();
+      break;
     case 'u':
       strncpy(username, optarg, 31);
       printf("username: %s\n", optarg);
@@ -76,9 +79,9 @@ main(int argc, char * argv[])
       strncpy(opponent, optarg, 31);
       printf("opponent: %s\n", optarg);
       break;
-    case 'h':
+    case 'a':
       strncpy(host, optarg, 127);
-      printf("host: %s\n", optarg);
+      printf("address: %s\n", optarg);
       break;
     case 'p':
       strncpy(port, optarg, 5);
