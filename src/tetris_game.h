@@ -52,24 +52,12 @@ struct active_block {
 static const struct position block_offsets[BLOCK_TYPE_COUNT][MAX_BLOCK_UNITS] = {
 	{{ 0, 0}, { 0,-1}, { 1,-1}, { 0, 1}}, // orange
 	{{ 0, 0}, { 0,-1}, {-1,-1}, { 0, 1}}, // blue
-	{{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 1}}, // cleve
-	{{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-1}}, // rhode
+	{{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-1}}, // cleve
+	{{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 1}}, // rhode
 	{{ 0, 0}, { 1, 0}, { 0, 1}, {-1, 0}}, // teewee
 	// the following 2 pieces should not rely on this for rotation
 	{{ 0,-1}, { 0, 0}, { 0, 1}, { 0, 2}}, // hero
 	{{ 0, 0}, { 0, 1}, { 1, 0}, { 1, 1}}, // square
-};
-
-
-static const struct position center_position[BLOCK_TYPE_COUNT] = {
-	{ 0, 1 }, // orange
-	{ 1, 1 }, // blue
-	{ 1, 1 }, // cleve
-	{ 0, 1 }, // rhode
-	{ 1, 0 }, // teewee
-	// the following 2 pieces should not rely on this for rotation
-	{ 0, 0 }, // hero
-	{ 0, 0 }, // square
 };
 
 struct game_contents {
