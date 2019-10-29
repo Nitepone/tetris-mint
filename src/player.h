@@ -6,6 +6,8 @@
 
 typedef struct st_player {
 	char * name;
+	/* opponent */
+	struct st_player * opponent;
 	/* the current file descriptor */
 	int fd;
 	/* reference to the player's rendered board */
@@ -15,7 +17,7 @@ typedef struct st_player {
 	/* the player's clock thread */
 	pthread_t game_clk_thread;
 	/* render function */
-	void (*render)(struct st_player *);
+	int (*render)(int socket_fd, struct st_player *);
 } Player;
 
 void player_init();
@@ -23,5 +25,9 @@ void player_init();
 struct st_player * get_player_from_fd(int fd);
 
 struct st_player * player_create(int fd, char * name);
+
+Player * player_get_by_name(char * name);
+
+void player_set_opponent( Player * player, Player * opponent );
 
 #endif

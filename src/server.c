@@ -12,15 +12,7 @@
 #include <string.h>
 
 #include "player.h"
-
-// message must hold 24 * 10 integers
-#define MAXMSG 1024
-
-#define MSG_TYPE_ROTATE 'R'
-#define MSG_TYPE_TRANSLATE 'T'
-#define MSG_TYPE_LOWER 'L'
-
-void send_board (struct st_player * player);
+#include "message.h"
 
 /**
  * get and bind a socket or exit on failure
@@ -60,11 +52,15 @@ make_socket (char * host, uint16_t port)
 	return sock;
 }
 
+/**
+ * Returns -1 if EOF is received or 0 otherwise.
+ */
 int
 read_from_client (int filedes)
 {
 	char buffer[MAXMSG];
 
+	// remember that more than one TCP packet may be read by this command
 	int nbytes = read (filedes, buffer, MAXMSG);
 
 	// exit early if there was an error
@@ -78,88 +74,113 @@ read_from_client (int filedes)
 		return -1;
 
 	// data was successfully read into the buffer
-	fprintf (stderr, "Received from client: `%s'\n", buffer);
+	fprintf (stderr, "read_from_client: received %d bytes from client\n", nbytes);
 
-	// handle input
+
+	char * end = buffer + nbytes;
+	char * cursor = buffer;
+
+	Player * opponent;
 	Player * player = get_player_from_fd(filedes);
-	switch(buffer[0]){
-	case MSG_TYPE_ROTATE:
-		rotate_block(buffer[1], player->contents);
-		break;
-	case MSG_TYPE_TRANSLATE:
-		translate_block(buffer[1], player->contents);
-		break;
-	case MSG_TYPE_LOWER:
-		lower_block(0, player->contents);
-		break;
+	char name[16];
+
+	while( cursor < end )
+	{
+		// the first two bytes of the message should be used to indicate the
+		// remaining number of bytes in the message
+		uint16_t message_size = (buffer[0] << 8) + buffer[1];
+		fprintf (stderr, "read_from_client: message size is %d\n", message_size);
+
+		// increment the cursor to the start of the message body
+		cursor += 2;
+		fprintf( stderr, "message body: %s\n", cursor);
+
+		switch(cursor[0]){
+		case MSG_TYPE_REGISTER:
+			sscanf( cursor + 1, "%15s", name);
+			player = player_create(filedes, name);
+			player->render = send_board;
+			break;
+		case MSG_TYPE_ROTATE:
+			rotate_block(cursor[1], player->contents);
+			break;
+		case MSG_TYPE_TRANSLATE:
+			translate_block(cursor[1], player->contents);
+			break;
+		case MSG_TYPE_LOWER:
+			lower_block(0, player->contents);
+			break;
+		case MSG_TYPE_DROP:
+			hard_drop (player->contents);
+			break;
+		case MSG_TYPE_OPPONENT:
+			fprintf(stderr, "Opponent: %s\n", cursor + 1);
+			opponent = player_get_by_name(cursor + 1);
+			if (opponent)
+				player_set_opponent(player, opponent);
+			break;
+		default:
+			fprintf(stderr, "read_from_client:_received unrecognized "
+			       "message with starting byte 0x%x", cursor[0]);
+		}
+
+		// increment the cursor past the message body end
+		cursor += message_size;
 	}
-	send_board(player);
+
+	// send the board to the player
+	send_board(player->fd, player);
+
+	// send the board to the player's opponent
+	if (player->opponent)
+		send_board(player->opponent->fd, player);
 
 	return 0;
 }
 
 void
-send_client_nbytes (int fd, char * message, int n)
-{
-  int bytes_written = write (fd, message, n);
-  fprintf(stderr, "Sent %d bytes to client\n", bytes_written);
-
-  if (bytes_written < 0) {
-    perror ("write");
-    exit (EXIT_FAILURE);
-  }
-}
-
-void
-message_client (int fd, char * message)
-{
-  int nbytes = write (fd, message, strlen (message) + 1);
-  if (nbytes < 0) {
-    perror ("write");
-    exit (EXIT_FAILURE);
-  }
-}
-
-void
-send_board (struct st_player * player)
-{
-	if (player == 0) {
-		fprintf(stderr, "Error: No player found for socket\n");
-		return;
-	}
-
-	if (player->view == 0) {
-		fprintf(stderr, "Error: No view exists for player.\n");
-		return;
-	}
-
-	if (player->view->board == 0) {
-		fprintf(stderr, "Error: No board exists for player.\n");
-		return;
-	}
-
-	char message[MAXMSG] = "BOARD";
-	generate_game_view_data(&player->view, player->contents);
-	memcpy(message + 5, player->view->board, 960);
-	send_client_nbytes(player->fd, message, 965);
-}
-
-void
 usage()
 {
-  fprintf(stderr, "Usage: ./server ADDRESS PORT\n");
+  fprintf(stderr, "Usage: ./server [-h] [-a ADDRESS] [-p PORT]\n");
   exit(EXIT_FAILURE);
 }
 
 int
 main(int argc, char * argv[])
 {
-	if( argc != 3)
-		usage();
+	char host[128] = "127.0.0.1";
+	char port[6] = "5555";
 
-	char * host = argv[1];
-	char * port = argv[2];
+	// Parse command line flags. The optstring passed to getopt has a preceding
+	// colon to tell getopt that missing flag values should be treated
+	// differently than unknown flags. The proceding colons indicate that flags
+	// must have a value.
+	int opt;
+	while((opt = getopt(argc, argv, ":ha:p:")) != -1)
+	{
+		switch(opt)
+		{
+		case 'h':
+			usage();
+			break;
+		case 'a':
+			strncpy(host, optarg, 127);
+			printf("address: %s\n", optarg);
+			break;
+		case 'p':
+			strncpy(port, optarg, 5);
+			printf("port: %s\n", optarg);
+			break;
+		case ':':
+			printf("option -%c needs a value\n", optopt);
+			break;
+		case '?':
+			printf("unknown option: %c\n", optopt);
+			break;
+		}
+	}
 
+	// convert the string port to a number port
 	uintmax_t numeric_port = strtoumax(port, NULL, 10);
 	if (numeric_port == UINTMAX_MAX && errno == ERANGE) {
 		fprintf(stderr, "Provided port is invalid\n");
@@ -199,45 +220,40 @@ main(int argc, char * argv[])
 
 		/* Service all the sockets with input pending. */
 		for (i = 0; i < FD_SETSIZE; ++i)
-			if (FD_ISSET (i, &read_fd_set))
+		{
+			// exit early if the file descriptor i is not in the set
+			if (!FD_ISSET (i, &read_fd_set))
+				continue;
+
+			// for new connections:
+			// - accept the connection
+			// - create a file descriptor for the connection
+			// - add the file descriptor to the file descriptor set
+			if (i == sock)
 			{
-				if (i == sock)
+				size = sizeof (clientname);
+				int new = accept (sock,
+					(struct sockaddr *) &clientname,
+					(socklen_t *) &size);
+				if (new < 0)
 				{
-					/* Connection request on original socket. */
-					int new;
-					size = sizeof (clientname);
-					new = accept (sock,
-						(struct sockaddr *) &clientname,
-						(socklen_t *) &size);
-					if (new < 0)
-					{
-						perror ("accept");
-						exit (EXIT_FAILURE);
-					}
-					fprintf (stderr,
-						 "Server: connect from host %s, port %hd.\n",
-						 inet_ntoa (clientname.sin_addr),
-						 ntohs (clientname.sin_port));
-
-					/* add the new player */
-					Player * player = player_create(new, "George");
-					player->render = send_board;
-					// write(new, "hello world", 12 );
-					// send_board(new);
-
-					// write(new, "receiv\u2588", 9);
-					FD_SET (new, &active_fd_set);
+					perror ("accept");
+					exit (EXIT_FAILURE);
 				}
-				else
-				{
-					/* Data arriving on an already-connected socket. */
-					if (read_from_client (i) < 0)
-					{
-						close (i);
-						FD_CLR (i, &active_fd_set);
-					}
-				}
+				fprintf (stderr,
+					 "main: new connection from host %s, port %hd.\n",
+					 inet_ntoa (clientname.sin_addr),
+					 ntohs (clientname.sin_port));
+
+				FD_SET (new, &active_fd_set);
 			}
+			// handle data on sockets already in the file descriptor set
+			else if (read_from_client (i) < 0) {
+				fprintf(stderr, "main: received EOF\n");
+				close (i);
+				FD_CLR (i, &active_fd_set);
+			}
+		}
 	}
 }
 

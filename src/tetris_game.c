@@ -341,7 +341,6 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 
 	// destroy translated block
 	destroy_block(&new_block);
-
 	// handle placing block if needed
 	if (!auto_drop) {
 		return place_block(game_contents);
@@ -368,6 +367,7 @@ int generate_game_view_data(struct game_view_data **gvd,
 	}
 	memcpy((*gvd)->board, gc->board, sizeof(int) *
 			BOARD_WIDTH * BOARD_HEIGHT);
+  
 	// draw current piece on gvd
 	get_block_positions(gc->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {

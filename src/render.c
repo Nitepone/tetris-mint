@@ -1,16 +1,36 @@
 #include <locale.h>
 #include <ncurses.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "render.h"
 
 #define CELL_WIDTH 2
 #define BOARD_CH_WIDTH (CELL_WIDTH * BOARD_WIDTH)
 
-static WINDOW * tetris_window;
+struct board_display {
+  char * name;
+  WINDOW * tetris_window;
+};
 
+static struct board_display * boards;
+static int nboards;
+
+static struct board_display *
+board_from_name(char * name)
+{
+  for (int i=0; i<nboards;i++)
+    if( strcmp(boards[i].name, name) == 0)
+      return boards + i;
+  return 0;
+}
+
+/**
+ * initialize the renderer to display n games for players given by the names in
+ * the array names
+ */
 void
-render_init(void)
+render_init(int n, char * names[])
 {
   // If the locale is not initialized, the library assumes that characters are
   // printable as in ISO-8859-1, to work with certain legacy programs. This is
@@ -26,6 +46,9 @@ render_init(void)
 
   // suppress echo of user entered characters
   noecho();
+
+  // enable reading of function and arrow keys
+  keypad(stdscr, TRUE);
 
   // hide the cursor
   curs_set(0);
@@ -43,31 +66,62 @@ render_init(void)
   init_pair(7, COLOR_CYAN, COLOR_CYAN);
 
   int starty = (LINES - BOARD_HEIGHT) / 2;
-  int startx = (COLS - BOARD_CH_WIDTH) / 2;
+
+  // set the static variable for this module
+  nboards = n;
+
+  // allocate the boards array
+  boards = malloc(n * sizeof(struct board_display));
+
+  int panel_width = COLS / n;
+  for( int i=0;i<n;i++){
+    int panel_lowx = panel_width * i;
+    int window_lowx = panel_lowx + (panel_width - BOARD_CH_WIDTH) / 2;
+      boards[i].name = names[i];
+      boards[i].tetris_window = create_newwin(
+          BOARD_HEIGHT + 2,
+          BOARD_CH_WIDTH + 2,
+          starty - 1,
+          window_lowx - 1
+      );
+  }
 
   refresh();
-  tetris_window = create_newwin(BOARD_HEIGHT + 2, BOARD_CH_WIDTH + 2, starty - 1, startx - 1);
 }
 
 void
 render_close(void)
 {
   // close the window
-  destroy_win(tetris_window);
+  // destroy_win(tetris_window);
   // end curses mode
   endwin();
 }
 
 void
-render_board(int board[BOARD_HEIGHT][BOARD_WIDTH])
+render_board(char * name, int board[BOARD_HEIGHT][BOARD_WIDTH])
 {
+  // figure out which board is getting rendered
+  struct board_display * bd = board_from_name(name);
+
+  if (bd == 0)
+    return;
+
+  WINDOW * tetris_window = bd->tetris_window;
+
+  // render the tetris window
   int r, c;
   for (r=0;r<BOARD_HEIGHT;r++)
-    for (c=0;c<BOARD_WIDTH;c++)
+    for (c=0;c<BOARD_WIDTH;c++) {
+      mvwaddch(tetris_window, BOARD_HEIGHT - r, 1 + c * CELL_WIDTH, ' ');
+      mvwaddch(tetris_window, BOARD_HEIGHT - r, 2 + c * CELL_WIDTH, ' ');
       if (board[r][c])
         mvwchgat(tetris_window, BOARD_HEIGHT - r, 1 + c * CELL_WIDTH, CELL_WIDTH, 0, board[r][c], NULL);
       else
         mvwchgat(tetris_window, BOARD_HEIGHT - r, 1 + c * CELL_WIDTH, CELL_WIDTH, 0, 0, NULL);
+    }
+
+  box(tetris_window, 0, 0);
   wrefresh(tetris_window);
 }
 

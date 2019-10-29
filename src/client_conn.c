@@ -8,13 +8,17 @@
 #include <pthread.h>
 #include <string.h>
 #include <netdb.h>
+#include <inttypes.h>
 
 #include "client_conn.h"
 #include "render.h"
 
+#define MSG_TYPE_REGISTER 'U'
+#define MSG_TYPE_OPPONENT 'O'
 #define MSG_TYPE_ROTATE 'R'
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
+#define MSG_TYPE_DROP 'D'
 
 // for backward compatibility
 #define h_addr h_addr_list[0]
@@ -47,9 +51,14 @@ init_sockaddr (struct sockaddr_in *name,
 }
 
 void
-tetris_send_message (char * message)
+tetris_send_message (char * body)
 {
-  int nbytes = write (sock_fd, message, strlen (message) + 1);
+  uint16_t len = strlen (body) + 1;
+  char message[128];
+  message[0] = len >> 8;
+  message[1] = len & 0xFF;
+  memcpy(message + 2, body, len);
+  int nbytes = write (sock_fd, message, len + 2);
   if (nbytes < 0) {
     perror ("write");
     exit (EXIT_FAILURE);
@@ -72,11 +81,19 @@ get_socket()
 }
 
 void
-tetris_translate(int x, int y)
+tetris_translate(int x)
 {
   char xdir = x > 0 ? 1 : 0;
   char message[128];
   sprintf(message, "%c%c", MSG_TYPE_TRANSLATE, xdir);
+  tetris_send_message(message);
+}
+
+void
+tetris_lower()
+{
+  char message[8];
+  sprintf(message, "%c", MSG_TYPE_LOWER);
   tetris_send_message(message);
 }
 
@@ -93,7 +110,7 @@ void
 tetris_drop()
 {
   char message[128];
-  sprintf(message, "%c", MSG_TYPE_LOWER);
+  sprintf(message, "%c", MSG_TYPE_DROP);
   tetris_send_message(message);
 }
 
@@ -117,6 +134,28 @@ tetris_connect(char * host, int port)
     }
 }
 
+/**
+ * register
+ */
+void
+tetris_register(char * username)
+{
+  char message[128];
+  sprintf(message, "%c%s", MSG_TYPE_REGISTER, username);
+  tetris_send_message(message);
+}
+
+/**
+ * select opponent by username
+ */
+void
+tetris_opponent(char * username)
+{
+  char message[128];
+  sprintf(message, "%c%s", MSG_TYPE_OPPONENT, username);
+  tetris_send_message(message);
+}
+
 void
 tetris_disconnect()
 {
@@ -127,23 +166,21 @@ void *
 tetris_thread(void * board_ptr)
 {
   // 1024 bytes is enough for the whole board
-  char buffer[1024];
+  char buffer[1280];
+  // ncurses message to display to user
   char message[256];
   int read_bytes = 0;
   int (*board)[BOARD_WIDTH] = board_ptr;
-  while( (read_bytes = read(sock_fd, buffer, 1024)) > 0 ){
+  while( (read_bytes = read(sock_fd, buffer, 1280)) > 0 ){
     sprintf(message, "Received %d bytes from server, starting with %c%c%c%c%c", read_bytes, buffer[0], buffer[1], buffer[2], buffer[3],buffer[4]);
     if (memcmp("BOARD", buffer, 5) == 0) {
-      sprintf(message, "Received board from server");
-      memcpy(board, buffer + 5, 960);
-      for (int i=0;i<960;i++)
-        if( *(buffer + 5 + i) != 0 )
-          sprintf(message, "Cell %d is set", i);
 
-      if (board[20][5] == 1){
-        render_message("piece set");
-      }
-      render_board(board);
+      // get the player associated with the board
+      uint8_t name_length = buffer[5];
+      char * board_name = buffer + 6;
+
+      memcpy(board, buffer + 7 + name_length, 960);
+      render_board(board_name, board);
     }
     render_message(message);
   }
