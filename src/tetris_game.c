@@ -41,16 +41,13 @@ int destroy_block (struct active_block **block) {
 }
 
 /*
- * Generates a random block and destroys old
+ * Generates a random block
  */
 int generate_block (struct active_block **block) {
-	// clear pointer
-	destroy_block(block);
 	// allocate and fill
-	*block = calloc(1, sizeof(struct active_block));
 	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
 	(*block)->position = ((struct position) BLOCK_START_POSITION);
-	(*block)->rotation_angle = ROT_NONE;
+	(*block)->rotation = none;
 	return 0;
 }
 
@@ -71,31 +68,69 @@ int new_game (struct game_contents **game_contents) {
 }
 
 /*
- * Gets block positions based on offsets and rotation
- * ( Does not work proper for line and square as the center is not a single
- *   block. It will work though, just violates pure Tetris rules )
+ * Gets edge centric block positions
+ * For use with blocks like the square block or line piece
+ *
+ * This rotates differently due to the "+ 1" when calculating the offsets
  */
-int get_def_block_positions (struct active_block *block) {
+int get_ec_block_pos (struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		// get one offset
 		cur_offset_pos = block_offsets[block->block_type][i];
 		// rotate
-		switch (block->rotation_angle) {
-			case ROT_NONE:
+		switch (block->rotation) {
+			case none:
 				x = cur_offset_pos.x;
 				y = cur_offset_pos.y;
 				break;
-			case ROT_RIGHT:
+			case right:
+				x = cur_offset_pos.y;
+				y = (-1) * cur_offset_pos.x + 1;
+				break;
+			case invert:
+				x = (-1) * cur_offset_pos.x + 1;
+				y = (-1) * cur_offset_pos.y + 1;
+				break;
+			case left:
+				x = (-1) * cur_offset_pos.y + 1;
+				y = cur_offset_pos.x;
+				break;
+		}
+		// convert offset to position and save
+		block->board_units[i] = ((struct position) {
+			block->position.x + x,
+			block->position.y + y
+		});
+	}
+	return 0;
+}
+
+/*
+ * Gets "block centric" block positions based on offsets and rotation
+ */
+int get_bc_block_pos (struct active_block *block) {
+	int x, y, i;
+	struct position cur_offset_pos;
+	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+		// get one offset
+		cur_offset_pos = block_offsets[block->block_type][i];
+		// rotate
+		switch (block->rotation) {
+			case none:
+				x = cur_offset_pos.x;
+				y = cur_offset_pos.y;
+				break;
+			case right:
 				x = cur_offset_pos.y;
 				y = (-1) * cur_offset_pos.x;
 				break;
-			case ROT_INVERT:
+			case invert:
 				x = (-1) * cur_offset_pos.x;
 				y = (-1) * cur_offset_pos.y;
 				break;
-			case ROT_LEFT:
+			case left:
 				x = (-1) * cur_offset_pos.y;
 				y = cur_offset_pos.x;
 				break;
@@ -121,11 +156,11 @@ int get_block_positions (struct active_block *block) {
 		case cleve:
 		case rhode:
 		case teewee:
+			return get_bc_block_pos(block);
 		// special blocks
-		// TODO: Handle these correctly
 		case smashboy:
 		case hero:
-			return get_def_block_positions(block);
+			return get_ec_block_pos(block);
 	}
 	return 0;
 }
@@ -158,9 +193,8 @@ int clone_block (struct active_block *old_block,
 		struct active_block **new_block) {
 	if (!old_block) // NULL catch
 		return -1;
-	destroy_block(new_block);
-	*new_block = calloc(1, sizeof(struct active_block));
-	**new_block = *old_block;
+	*new_block = calloc(1, sizeof(*old_block));
+	memcpy(*new_block, old_block, sizeof(*old_block));
 	return 0;
 }
 
@@ -249,6 +283,7 @@ int place_block (struct game_contents *game_contents) {
 
 int translate_block (int rightward, struct game_contents *game_contents) {
 	struct active_block *new_block = NULL;
+	struct active_block *temp_block_p = NULL;
 	clone_block(game_contents->active_block, &new_block);
 	// perform translation
 	if (rightward)
@@ -257,43 +292,55 @@ int translate_block (int rightward, struct game_contents *game_contents) {
 		new_block->position.x--;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
+		temp_block_p = game_contents->active_block;
 		game_contents->active_block = new_block;
+		destroy_block(&temp_block_p);
+		return 0;
 	} else {
+		destroy_block(&new_block);
 		return -1;
 	}
-	return 0;
 }
 
 int rotate_block (int clockwise, struct game_contents *game_contents) {
 	int x;
 	struct active_block *new_block = NULL;
+	struct active_block *temp_block_p = NULL;
 	clone_block(game_contents->active_block, &new_block);
 	if (clockwise)
 		x = 1;
 	else
-		x = (ROT_COUNT-1);
+		x = (ROT_COUNT-1); // effectively (-1) as it is remaindered
 	// perform rotation
-	new_block->rotation_angle = (new_block->rotation_angle + x) % ROT_COUNT;
+	new_block->rotation = (new_block->rotation + x) % ROT_COUNT;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
+		temp_block_p = game_contents->active_block;
 		game_contents->active_block = new_block;
+		destroy_block(&temp_block_p);
+		return 0;
 	} else {
+		destroy_block(&new_block);
 		return -1;
 	}
-	return 0;
 }
 
 int lower_block (int auto_drop, struct game_contents *game_contents) {
 	struct active_block *new_block = NULL;
+	struct active_block *temp_block_p = NULL;
 	clone_block(game_contents->active_block, &new_block);
 	// perform transform
 	new_block->position.y--;
 	// test if move was valid
 	if (!test_block(game_contents, new_block)) {
+		temp_block_p = game_contents->active_block;
 		game_contents->active_block = new_block;
+		destroy_block(&temp_block_p);
 		return -1;
 	}
 
+	// destroy translated block
+	destroy_block(&new_block);
 	// handle placing block if needed
 	if (!auto_drop) {
 		return place_block(game_contents);
@@ -305,8 +352,9 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 }
 
 int hard_drop (struct game_contents *gc) {
-	while (lower_block(0, gc) < 0);
-	return 0;
+	int ret = 0;
+	while (((ret = lower_block(0, gc)) < 0));
+	return ret;
 }
 
 int generate_game_view_data(struct game_view_data **gvd,
@@ -317,7 +365,9 @@ int generate_game_view_data(struct game_view_data **gvd,
 	if (!(*gvd)) {
 		*gvd = calloc(1, sizeof(struct game_view_data));
 	}
-	memcpy((*gvd)->board, gc->board, sizeof(int) * 24 * 10);
+	memcpy((*gvd)->board, gc->board, sizeof(int) *
+			BOARD_WIDTH * BOARD_HEIGHT);
+  
 	// draw current piece on gvd
 	get_block_positions(gc->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {

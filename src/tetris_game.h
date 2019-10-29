@@ -11,17 +11,19 @@
 #define MAX_BLOCK_UNITS 4
 #define BLOCK_START_POSITION { 4, 21 }
 
-#define ROT_COUNT 4
-#define ROT_NONE 0
-#define ROT_RIGHT 1
-#define ROT_INVERT 2
-#define ROT_LEFT 3
-
 #define MAX_AUTO_LOWER 3
 
 #define BOARD_HEIGHT 24
 #define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
+
+enum rotation {
+	none,
+	right,
+	invert,
+	left,
+};
+#define ROT_COUNT 4
 
 enum block_type {
 	orange,
@@ -41,7 +43,7 @@ struct position {
 
 struct active_block {
 	enum block_type block_type;
-	int rotation_angle;
+	enum rotation rotation;
 	/* position of block center */
 	struct position position;
 	struct position board_units[MAX_BLOCK_UNITS];
@@ -50,25 +52,12 @@ struct active_block {
 static const struct position block_offsets[BLOCK_TYPE_COUNT][MAX_BLOCK_UNITS] = {
 	{{ 0, 0}, { 0,-1}, { 1,-1}, { 0, 1}}, // orange
 	{{ 0, 0}, { 0,-1}, {-1,-1}, { 0, 1}}, // blue
-	{{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 1}}, // cleve
-	{{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-1}}, // rhode
+	{{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-1}}, // cleve
+	{{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 1}}, // rhode
 	{{ 0, 0}, { 1, 0}, { 0, 1}, {-1, 0}}, // teewee
 	// the following 2 pieces should not rely on this for rotation
-	{{ 0, 0}, { 0,-1}, { 0, 1}, { 0, 2}}, // hero
-	{{ 0, 0}, { 0, 1}, { 1, 1}, { 1, 0}}, // square
-};
-
-
-
-static const struct position center_position[BLOCK_TYPE_COUNT] = {
-	{ 0, 1 }, // orange
-	{ 1, 1 }, // blue
-	{ 1, 1 }, // cleve
-	{ 0, 1 }, // rhode
-	{ 1, 0 }, // teewee
-	// the following 2 pieces should not rely on this for rotation
-	{ 0, 0 }, // hero
-	{ 0, 0 }, // square
+	{{ 0,-1}, { 0, 0}, { 0, 1}, { 0, 2}}, // hero
+	{{ 0, 0}, { 0, 1}, { 1, 0}, { 1, 1}}, // square
 };
 
 struct game_contents {

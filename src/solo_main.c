@@ -22,9 +22,9 @@ void print_board() {
 	generate_game_view_data(&gvd, game_contents);
 	printf("\e[1;1H\e[2J"); // clear posix
 	printf("\n\n\n\n\n\n\n\n");
-	for (i = 23; i >= 0; i--) {
+	for (i = (BOARD_HEIGHT - 1); i >= 0; i--) {
 		printf("                    ");
-		for (j = 9; j >= 0; j--) {
+		for (j = (BOARD_WIDTH - 1); j >= 0; j--) {
 			val = gvd->board[i][j];
 			printf("\e[0;3%dm",val);
 			printf("██");
