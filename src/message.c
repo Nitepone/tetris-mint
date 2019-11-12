@@ -26,6 +26,47 @@ message_nbytes(int socket_fd, char * bytes, int n)
 }
 
 /**
+ * Send a list of all online users over the given socket.
+ */
+int
+send_online_users (Player * player)
+{
+	int socket_fd = player->fd;
+	StringArray * arr = player_names();
+	Blob * blob = serialize_string_array(arr);
+	shift_blob(blob, 3);
+	*(uint16_t *)blob->bytes = blob->length;
+	blob->bytes[2] = MSG_TYPE_LIST_RESPONSE;
+	printf("send_online_users: message blob length: %d\n", blob->length);
+
+	pthread_mutex_lock(&player->io_lock);
+	message_nbytes(socket_fd, blob->bytes, blob->length);
+	pthread_mutex_unlock(&player->io_lock);
+
+	return EXIT_SUCCESS;
+}
+
+Blob *
+serialize_state (Player * player)
+{
+	// first, render the board into the player view
+	generate_game_view_data(&player->view, player->contents);
+
+	// create a blob to contain the message
+	Blob * blob = create_blob(MAXMSG);
+	// first two bytes represent the length of the message
+	*(uint16_t *)blob->bytes = blob->length;
+	// next byte indicates message type
+	blob->bytes[2] = MSG_TYPE_BOARD;
+	// next null-terminated bytes are used to store the player name
+	uint8_t name_length = strlen(player->name);
+	memcpy(blob->bytes + 3, player->name, name_length + 1);
+	// the board is sent directly after the null-byte
+	memcpy(blob->bytes + 4 + name_length, player->view->board, 960);
+	return blob;
+}
+
+/**
  * Send the board for the given player over the given socket.
  */
 int
@@ -51,20 +92,13 @@ send_board (int socket_fd, struct st_player * player)
 		return EXIT_FAILURE;
 	}
 
-	char message[MAXMSG] = "BOARD";
-	// sixth byte represents the length of the player's name
-	uint8_t name_length = strlen(player->name);
-	message[5] = name_length;
-	// the next name_length + 1 bytes contain the player's name followed by
-	// the null byte
-	memcpy(message + 6, player->name, name_length + 1);
+	Blob * blob = serialize_state(player);
 
-	// the board is sent at position 7 + name_length
-	generate_game_view_data(&player->view, player->contents);
-	memcpy(message + 7 + name_length, player->view->board, 960);
+	pthread_mutex_lock(&player->io_lock);
+	int status = message_nbytes(socket_fd, blob->bytes, blob->length);
+	pthread_mutex_unlock(&player->io_lock);
 
-	// send the message
-	return message_nbytes(socket_fd, message, 967 + name_length);
+	return status;
 }
 
 // vi:noet:noai:sw=0:sts=0:ts=8

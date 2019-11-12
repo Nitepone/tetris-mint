@@ -15,6 +15,8 @@ void tetris_rotate(int theta);
 
 void tetris_drop();
 
+void tetris_list();
+
 void tetris_listen(int board[BOARD_HEIGHT][BOARD_WIDTH]);
 
 void tetris_register(char * username);

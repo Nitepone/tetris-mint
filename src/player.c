@@ -8,6 +8,7 @@
 #include "list.h"
 #include "tetris_game.h"
 #include "player.h"
+#include "generic.h"
 
 static struct st_list * player_list;
 
@@ -21,6 +22,7 @@ void
 *player_clock(void *input)
 {
 	struct st_player *player = (struct st_player*) input;
+	fprintf(stderr, "player_clock: thread started\n");
 	while(1){
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
@@ -33,7 +35,7 @@ void
 		if( player->opponent )
 			player->render(player->opponent->fd, player);
 	}
-	fprintf(stderr, "Player clock thread exited\n");
+	fprintf(stderr, "player_clock: thread exiting\n");
 	return 0;
 }
 
@@ -54,6 +56,19 @@ get_player_from_fd(int fd)
 			return player;
 	}
 	return 0;
+}
+
+StringArray *
+player_names()
+{
+	StringArray * arr = create_string_array(player_list->length);
+
+	for (int i=0;i<player_list->length;i++) {
+		Player * player = (struct st_player *)(list_get(player_list, i)->target);
+		set_string_array(arr, i, player->name);
+	}
+
+	return arr;
 }
 
 /**

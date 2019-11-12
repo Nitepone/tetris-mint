@@ -12,13 +12,8 @@
 
 #include "client_conn.h"
 #include "render.h"
-
-#define MSG_TYPE_REGISTER 'U'
-#define MSG_TYPE_OPPONENT 'O'
-#define MSG_TYPE_ROTATE 'R'
-#define MSG_TYPE_TRANSLATE 'T'
-#define MSG_TYPE_LOWER 'L'
-#define MSG_TYPE_DROP 'D'
+#include "message.h"
+#include "generic.h"
 
 // for backward compatibility
 #define h_addr h_addr_list[0]
@@ -114,6 +109,14 @@ tetris_drop()
   tetris_send_message(message);
 }
 
+void
+tetris_list()
+{
+  char message[128];
+  sprintf(message, "%c", MSG_TYPE_LIST);
+  tetris_send_message(message);
+}
+
 /**
  * establish a connection to the server
  */
@@ -162,28 +165,102 @@ tetris_disconnect()
   close(sock_fd);
 }
 
+int
+read_board (char ** cursor, void * board_ptr)
+{
+  char * buffer = *cursor;
+  int (*board)[BOARD_WIDTH] = board_ptr;
+  // move the pointer past the message identifier
+  ++buffer;
+  // get the player associated with the board
+  char * board_name = buffer;
+  int name_length = strlen(board_name);
+  // move the pointer past the name string
+  buffer += name_length + 1;
+  // copy the board
+  memcpy(board, buffer, 960);
+  render_board(board_name, board);
+
+  return EXIT_SUCCESS;
+}
+
+int
+read_names (char ** cursor)
+{
+  char * buffer = *cursor;
+  int received_names = *(int *)(buffer + 1);
+  printf("Num strings received: %d\n", received_names);
+  char * current_name = buffer + 5;
+  for (int i=0; i<received_names; i++) {
+    printf("Name: %s\n", current_name);
+    current_name += strlen(current_name) + 1;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int
+read_from_server (int filedes, void * board_ptr)
+{
+  // 1024 bytes is enough for the whole board
+  char buffer[MAXMSG];
+
+  // remember that more than one TCP packet may be read by this command
+  int nbytes = read (filedes, buffer, MAXMSG);
+
+  // exit early if there was an error
+  if (nbytes < 0) {
+    perror ("read");
+    return EXIT_FAILURE;
+  }
+
+  // exit early if we reached the end-of-file
+  if (nbytes == 0)
+    return -1;
+
+  // initialize pointers for moving through data
+  char * end = buffer + nbytes;
+  char * cursor = buffer;
+
+  while( cursor < end )
+  {
+    // the first two bytes of the message should be used to indicate the
+    // remaining number of bytes in the message
+    uint16_t message_size = (buffer[0] << 8) + buffer[1];
+
+    // increment the cursor to the start of the message body
+    cursor += 2;
+
+    switch(cursor[0]){
+    case MSG_TYPE_BOARD:
+      read_board(&cursor, board_ptr);
+      break;
+    case MSG_TYPE_LIST_RESPONSE:
+      read_names(&cursor);
+      break;
+    default:
+      // stop processing on this read chunk if it contained an unknown
+      // message
+      return EXIT_SUCCESS;
+    }
+
+    // increment the cursor by the message_size
+    cursor += message_size;
+  }
+
+  return EXIT_SUCCESS;
+}
+
 void *
 tetris_thread(void * board_ptr)
 {
   // 1024 bytes is enough for the whole board
-  char buffer[1280];
+  // char buffer[1280];
   // ncurses message to display to user
-  char message[256];
-  int read_bytes = 0;
-  int (*board)[BOARD_WIDTH] = board_ptr;
-  while( (read_bytes = read(sock_fd, buffer, 1280)) > 0 ){
-    sprintf(message, "Received %d bytes from server, starting with %c%c%c%c%c", read_bytes, buffer[0], buffer[1], buffer[2], buffer[3],buffer[4]);
-    if (memcmp("BOARD", buffer, 5) == 0) {
 
-      // get the player associated with the board
-      uint8_t name_length = buffer[5];
-      char * board_name = buffer + 6;
-
-      memcpy(board, buffer + 7 + name_length, 960);
-      render_board(board_name, board);
-    }
-    render_message(message);
+  while( read_from_server(sock_fd, board_ptr) == EXIT_SUCCESS ) {
   }
+
   return 0;
 }
 

@@ -82,6 +82,9 @@ read_from_client (int filedes)
 
 	Player * opponent;
 	Player * player = get_player_from_fd(filedes);
+	if (player == 0) {
+		printf("read_from_client: player is null for socket file descriptor.\n");
+	}
 	char name[16];
 
 	while( cursor < end )
@@ -118,6 +121,9 @@ read_from_client (int filedes)
 			opponent = player_get_by_name(cursor + 1);
 			if (opponent)
 				player_set_opponent(player, opponent);
+			break;
+		case MSG_TYPE_LIST:
+			send_online_users(player);
 			break;
 		default:
 			fprintf(stderr, "read_from_client:_received unrecognized "

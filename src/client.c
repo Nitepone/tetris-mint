@@ -59,12 +59,14 @@ main(int argc, char * argv[])
   char host[128] = "127.0.0.1";
   char port[6] = "5555";
 
+  int list_players = 0;
+
   // Parse command line flags. The optstring passed to getopt has a preceding
   // colon to tell getopt that missing flag values should be treated
   // differently than unknown flags. The proceding colons indicate that flags
   // must have a value.
   int opt;
-  while((opt = getopt(argc, argv, ":hu:o:a:p:")) != -1)
+  while((opt = getopt(argc, argv, ":hlu:o:a:p:")) != -1)
   {
     switch(opt)
     {
@@ -87,6 +89,9 @@ main(int argc, char * argv[])
       strncpy(port, optarg, 5);
       printf("port: %s\n", optarg);
       break;
+    case 'l':
+      list_players = 1;
+      break;
     case ':':
       printf("option -%c needs a value\n", optopt);
       break;
@@ -105,23 +110,36 @@ main(int argc, char * argv[])
 
   // connect to the server
   tetris_connect(host, numeric_port);
+  // tetris_listen(board);
+  // tetris_register(username);
+  // tetris_list();
+  // input_loop();
+
+  // return 0;
   tetris_register(username);
   tetris_opponent(opponent);
+
 
   char * names[2];
   names[0] = username;
   names[1] = opponent;
 
-  render_init(2, names);
+
+  // render two blank boards
   render_board(username, board);
   render_board(opponent, board);
 
   tetris_listen(board);
 
-  input_loop();
+  if (list_players) {
+    tetris_list();
+    sleep(1);
+  } else {
+    render_init(2, names);
+    input_loop();
+    render_close();
+  }
 
-  // cleanup and exit
-  render_close();
   tetris_disconnect();
   return 0;
 }

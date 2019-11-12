@@ -1,8 +1,10 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "tetris_game.h"
 #include <pthread.h>
+
+#include "generic.h"
+#include "tetris_game.h"
 
 typedef struct st_player {
 	char * name;
@@ -18,6 +20,8 @@ typedef struct st_player {
 	pthread_t game_clk_thread;
 	/* render function */
 	int (*render)(int socket_fd, struct st_player *);
+	/* io lock */
+	pthread_mutex_t io_lock;
 } Player;
 
 void player_init();
@@ -25,6 +29,8 @@ void player_init();
 struct st_player * get_player_from_fd(int fd);
 
 struct st_player * player_create(int fd, char * name);
+
+StringArray * player_names();
 
 Player * player_get_by_name(char * name);
 

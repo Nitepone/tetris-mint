@@ -104,8 +104,10 @@ render_board(char * name, int board[BOARD_HEIGHT][BOARD_WIDTH])
   // figure out which board is getting rendered
   struct board_display * bd = board_from_name(name);
 
-  if (bd == 0)
+  if (bd == 0) {
+    printf("render_board: no board found for name\n");
     return;
+  }
 
   WINDOW * tetris_window = bd->tetris_window;
 
