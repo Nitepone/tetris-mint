@@ -241,7 +241,7 @@ main(int argc, char * argv[])
 					exit (EXIT_FAILURE);
 				}
 				fprintf (stderr,
-					 "main: new connection from host %s, port %hd.\n",
+					 "main: new connection from host %s, port %hu.\n",
 					 inet_ntoa (clientname.sin_addr),
 					 ntohs (clientname.sin_port));
 
