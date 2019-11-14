@@ -65,27 +65,27 @@ int get_socket() {
 	exit(EXIT_FAILURE);
 }
 
-void tetris_translate(int x) {
+static void tetris_translate(int x) {
 	char xdir = x > 0 ? 1 : 0;
 	char message[128];
 	sprintf(message, "%c%c", MSG_TYPE_TRANSLATE, xdir);
 	tetris_send_message(message);
 }
 
-void tetris_lower() {
+static void tetris_lower() {
 	char message[8];
 	sprintf(message, "%c", MSG_TYPE_LOWER);
 	tetris_send_message(message);
 }
 
-void tetris_rotate(int theta) {
+static void tetris_rotate(int theta) {
 	char dir = theta > 0 ? 1 : 0;
 	char message[128];
 	sprintf(message, "%c%c", MSG_TYPE_ROTATE, dir);
 	tetris_send_message(message);
 }
 
-void tetris_drop() {
+static void tetris_drop() {
 	char message[128];
 	sprintf(message, "%c", MSG_TYPE_DROP);
 	tetris_send_message(message);
@@ -231,3 +231,11 @@ void *tetris_thread(void *board_ptr) {
 void tetris_listen(int board[BOARD_HEIGHT][BOARD_WIDTH]) {
 	pthread_create(&listen_thread, NULL, tetris_thread, board);
 }
+
+// define a control set for use over TCP
+static const TetrisControlSet TCPControlSet = {.translate = tetris_translate,
+                                               .lower = tetris_lower,
+                                               .rotate = tetris_rotate,
+                                               .drop = tetris_drop};
+
+TetrisControlSet tcp_control_set(void) { return TCPControlSet; }

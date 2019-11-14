@@ -7,45 +7,77 @@
 #include <unistd.h>
 
 #include "client_conn.h"
+#include "controller.h"
+#include "player.h"
 #include "render.h"
+
+Player *offline_player;
+struct game_contents *offline_contents;
 
 // local cache of the user's tetris board
 // global variables and static variables are automatically initialized to zero
 int board[BOARD_HEIGHT][BOARD_WIDTH];
 
-///
-// Loop and handle input until ESC is pressed
-///
-void input_loop() {
-	char ch;
-	while ((ch = getch()) != 27) {
-		switch (ch) {
-		case 'a':
-			tetris_translate(-1);
-			break;
-		case 'w':
-			tetris_drop();
-			break;
-		case 's':
-			tetris_lower(1);
-			break;
-		case 'd':
-			tetris_translate(1);
-			break;
-		case 'q':
-			tetris_rotate(-1);
-			break;
-		case 'e':
-			tetris_rotate(1);
-			break;
-		}
-	}
-}
-
 void usage() {
 	fprintf(stderr, "Usage: ./client [-h] [-u USERNAME] [-o OPPONENT] [-a "
 	                "ADDRESS] [-p PORT]\n");
 	exit(EXIT_FAILURE);
+}
+
+static int renderish(int fd, Player *player) {
+	generate_game_view_data(&player->view, player->contents);
+	render_board(player->name, player->view->board);
+	return EXIT_SUCCESS;
+}
+
+static void offline_translate(int x) {
+	translate_block(x, offline_contents);
+	renderish(0, offline_player);
+}
+
+static void offline_lower() {
+	lower_block(0, offline_contents);
+	renderish(0, offline_player);
+}
+
+static void offline_rotate(int theta) {
+	rotate_block(theta, offline_contents);
+	renderish(0, offline_player);
+}
+
+static void offline_drop() {
+	hard_drop(offline_contents);
+	renderish(0, offline_player);
+}
+
+// define a control set for use offline
+static const TetrisControlSet OfflineControlSet = {.translate =
+                                                       offline_translate,
+                                                   .lower = offline_lower,
+                                                   .rotate = offline_rotate,
+                                                   .drop = offline_drop};
+
+int solo() {
+	// initialize the player list
+	player_init();
+
+	// create a single player
+	char *names[1];
+	names[0] = "You";
+	Player *player = player_create(0, names[0]);
+	player->render = renderish;
+
+	offline_contents = player->contents;
+	offline_player = player;
+
+	render_init(1, names);
+	// render_board(player->name, board);
+	// render_close();
+
+	// return EXIT_SUCCESS;
+	keyboard_input_loop(OfflineControlSet);
+	render_close();
+	return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
@@ -61,11 +93,13 @@ int main(int argc, char *argv[]) {
 	// treated differently than unknown flags. The proceding colons indicate
 	// that flags must have a value.
 	int opt;
-	while ((opt = getopt(argc, argv, ":hlu:o:a:p:")) != -1) {
+	while ((opt = getopt(argc, argv, ":hslu:o:a:p:")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
 			break;
+		case 's':
+			return solo();
 		case 'u':
 			strncpy(username, optarg, 31);
 			printf("username: %s\n", optarg);
@@ -103,12 +137,6 @@ int main(int argc, char *argv[]) {
 
 	// connect to the server
 	tetris_connect(host, numeric_port);
-	// tetris_listen(board);
-	// tetris_register(username);
-	// tetris_list();
-	// input_loop();
-
-	// return 0;
 	tetris_register(username);
 	tetris_opponent(opponent);
 
@@ -127,7 +155,7 @@ int main(int argc, char *argv[]) {
 		sleep(1);
 	} else {
 		render_init(2, names);
-		input_loop();
+		keyboard_input_loop(tcp_control_set());
 		render_close();
 	}
 
