@@ -127,3 +127,7 @@ clean:
 
 realclean:        clean
 	-/bin/rm -rf client server solo_main test_board test_client_conn test_player 
+
+.PHONY: lint
+lint:
+	clang-format --style=file -i *.c *.h
