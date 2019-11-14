@@ -9,7 +9,8 @@
 #define TETRIS_GAME_H
 
 #define MAX_BLOCK_UNITS 4
-#define BLOCK_START_POSITION { 4, 21 }
+#define BLOCK_START_POSITION                                                   \
+	{ 4, 21 }
 
 #define MAX_AUTO_LOWER 3
 
@@ -49,15 +50,16 @@ struct active_block {
 	struct position board_units[MAX_BLOCK_UNITS];
 };
 
-static const struct position block_offsets[BLOCK_TYPE_COUNT][MAX_BLOCK_UNITS] = {
-	{{ 0, 0}, { 0,-1}, { 1,-1}, { 0, 1}}, // orange
-	{{ 0, 0}, { 0,-1}, {-1,-1}, { 0, 1}}, // blue
-	{{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-1}}, // cleve
-	{{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 1}}, // rhode
-	{{ 0, 0}, { 1, 0}, { 0, 1}, {-1, 0}}, // teewee
-	// the following 2 pieces should not rely on this for rotation
-	{{ 0,-1}, { 0, 0}, { 0, 1}, { 0, 2}}, // hero
-	{{ 0, 0}, { 0, 1}, { 1, 0}, { 1, 1}}, // square
+static const struct position block_offsets[BLOCK_TYPE_COUNT][MAX_BLOCK_UNITS] =
+    {
+        {{0, 0}, {0, -1}, {1, -1}, {0, 1}},  // orange
+        {{0, 0}, {0, -1}, {-1, -1}, {0, 1}}, // blue
+        {{0, 0}, {-1, 0}, {-1, 1}, {0, -1}}, // cleve
+        {{0, 0}, {-1, 0}, {-1, -1}, {0, 1}}, // rhode
+        {{0, 0}, {1, 0}, {0, 1}, {-1, 0}},   // teewee
+        // the following 2 pieces should not rely on this for rotation
+        {{0, -1}, {0, 0}, {0, 1}, {0, 2}}, // hero
+        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},  // square
 };
 
 struct game_contents {
@@ -79,21 +81,21 @@ struct game_view_data {
  * @param forced - 0 if move is done by client, non-zero if by game
  * @return - 0 if game is still good, -1 on game over
  */
-int lower_block (int forced, struct game_contents *game_contents);
+int lower_block(int forced, struct game_contents *game_contents);
 
 /*
  * Translates a block left or right a unit
  * @param rightward - zero if block movement is leftward, else rightward
  * @return - 0 if piece moved, else non-zero
  */
-int translate_block (int rightward, struct game_contents *game_contents);
+int translate_block(int rightward, struct game_contents *game_contents);
 
 /*
  * Rotates a block left or right
  * @param clockwise - zero rotates the block counter-clockwise, else clockwise
  * @return - 0 if piece rotated, else non-zero
  */
-int rotate_block (int clockwise, struct game_contents *game_contents);
+int rotate_block(int clockwise, struct game_contents *game_contents);
 
 /*
  * Starts a game and takes a double pointer for game contents data
@@ -112,7 +114,7 @@ int destroy_game(struct game_contents **game_contents);
  * Makes a game_view_data with a representation of all active board pieces
  */
 int generate_game_view_data(struct game_view_data **gvd,
-		struct game_contents *gc);
+                            struct game_contents *gc);
 
 /*
  * Returns 0 if game is still ongoing
@@ -120,6 +122,5 @@ int generate_game_view_data(struct game_view_data **gvd,
 int game_over(struct game_contents *game_contents);
 
 int hard_drop(struct game_contents *game_contents);
-
 
 #endif /* !TETRIS_GAME_H */

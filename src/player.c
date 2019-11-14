@@ -1,29 +1,23 @@
 #include <pthread.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <string.h>
 
-#include "list.h"
-#include "tetris_game.h"
-#include "player.h"
 #include "generic.h"
+#include "list.h"
+#include "player.h"
+#include "tetris_game.h"
 
-static struct st_list * player_list;
+static struct st_list *player_list;
 
-void
-player_init()
-{
-        player_list = list_create();
-}
+void player_init() { player_list = list_create(); }
 
-void
-*player_clock(void *input)
-{
-	struct st_player *player = (struct st_player*) input;
+void *player_clock(void *input) {
+	struct st_player *player = (struct st_player *)input;
 	fprintf(stderr, "player_clock: thread started\n");
-	while(1){
+	while (1) {
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
 
@@ -32,25 +26,21 @@ void
 			player->fd = -1;
 
 		// send board to opponent if one exists
-		if( player->opponent )
+		if (player->opponent)
 			player->render(player->opponent->fd, player);
 	}
 	fprintf(stderr, "player_clock: thread exiting\n");
 	return 0;
 }
 
-void
-start_game(struct st_player *player)
-{
+void start_game(struct st_player *player) {
 	pthread_create(&player->game_clk_thread, NULL, player_clock,
-			(void *)player);
+	               (void *)player);
 }
 
-struct st_player *
-get_player_from_fd(int fd)
-{
-	struct st_player * player;
-	for (int i=0;i<player_list->length;i++) {
+struct st_player *get_player_from_fd(int fd) {
+	struct st_player *player;
+	for (int i = 0; i < player_list->length; i++) {
 		player = (struct st_player *)(list_get(player_list, i)->target);
 		if (player->fd == fd)
 			return player;
@@ -58,13 +48,12 @@ get_player_from_fd(int fd)
 	return 0;
 }
 
-StringArray *
-player_names()
-{
-	StringArray * arr = create_string_array(player_list->length);
+StringArray *player_names() {
+	StringArray *arr = create_string_array(player_list->length);
 
-	for (int i=0;i<player_list->length;i++) {
-		Player * player = (struct st_player *)(list_get(player_list, i)->target);
+	for (int i = 0; i < player_list->length; i++) {
+		Player *player =
+		    (struct st_player *)(list_get(player_list, i)->target);
 		set_string_array(arr, i, player->name);
 	}
 
@@ -76,13 +65,12 @@ player_names()
  *
  * WARNING: this is a comparitively expensive operation.
  */
-Player *
-player_get_by_name(char * name)
-{
-	struct st_player * player;
-	for (int i=0;i<player_list->length;i++) {
+Player *player_get_by_name(char *name) {
+	struct st_player *player;
+	for (int i = 0; i < player_list->length; i++) {
 		player = (struct st_player *)(list_get(player_list, i)->target);
-		fprintf(stderr, "player_get_by_name: Checking player '%s'\n", player->name);
+		fprintf(stderr, "player_get_by_name: Checking player '%s'\n",
+		        player->name);
 		if (strcmp(player->name, name) == 0)
 			return player;
 	}
@@ -90,10 +78,8 @@ player_get_by_name(char * name)
 	return NULL;
 }
 
-struct st_player *
-player_create(int fd, char * name)
-{
-	struct st_player * player = malloc(sizeof(struct st_player));
+struct st_player *player_create(int fd, char *name) {
+	struct st_player *player = malloc(sizeof(struct st_player));
 	player->fd = fd;
 	player->name = malloc(strlen(name) + 1);
 	memcpy(player->name, name, strlen(name) + 1);
@@ -103,7 +89,8 @@ player_create(int fd, char * name)
 	list_append(player_list, player);
 	fprintf(stderr, "player_create: Created player '%s'\n", player->name);
 	player_get_by_name(player->name);
-	fprintf(stderr, "player_create: There are now %d players\n", player_list->length);
+	fprintf(stderr, "player_create: There are now %d players\n",
+	        player_list->length);
 
 	new_game(&player->contents);
 
@@ -113,14 +100,13 @@ player_create(int fd, char * name)
 	return player;
 }
 
-void
-player_set_opponent( Player * player, Player * opponent )
-{
+void player_set_opponent(Player *player, Player *opponent) {
 	if (opponent == NULL)
 		return;
 
 	player->opponent = opponent;
 	opponent->opponent = player;
 
-	fprintf(stderr, "player_set_opponent: %s and %s are now opponents\n", player->name, opponent->name);
+	fprintf(stderr, "player_set_opponent: %s and %s are now opponents\n",
+	        player->name, opponent->name);
 }

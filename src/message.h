@@ -14,10 +14,10 @@
 #define MSG_TYPE_BOARD 'B'
 #define MSG_TYPE_LIST_RESPONSE 'Y'
 
-int message_nbytes(int socket_fd, char * bytes, int n);
+int message_nbytes(int socket_fd, char *bytes, int n);
 
-int send_online_users (Player * player);
+int send_online_users(Player *player);
 
-int send_board (int socket_fd, Player * player);
+int send_board(int socket_fd, Player *player);
 
 #endif

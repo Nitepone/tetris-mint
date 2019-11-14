@@ -7,15 +7,15 @@
 #include "tetris_game.h"
 
 typedef struct st_player {
-	char * name;
+	char *name;
 	/* opponent */
-	struct st_player * opponent;
+	struct st_player *opponent;
 	/* the current file descriptor */
 	int fd;
 	/* reference to the player's rendered board */
-	struct game_view_data * view;
+	struct game_view_data *view;
 	/* player's game contents*/
-	struct game_contents * contents;
+	struct game_contents *contents;
 	/* the player's clock thread */
 	pthread_t game_clk_thread;
 	/* render function */
@@ -26,14 +26,14 @@ typedef struct st_player {
 
 void player_init();
 
-struct st_player * get_player_from_fd(int fd);
+struct st_player *get_player_from_fd(int fd);
 
-struct st_player * player_create(int fd, char * name);
+struct st_player *player_create(int fd, char *name);
 
-StringArray * player_names();
+StringArray *player_names();
 
-Player * player_get_by_name(char * name);
+Player *player_get_by_name(char *name);
 
-void player_set_opponent( Player * player, Player * opponent );
+void player_set_opponent(Player *player, Player *opponent);
 
 #endif

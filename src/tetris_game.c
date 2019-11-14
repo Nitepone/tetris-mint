@@ -14,7 +14,7 @@
 /*
  * Destroys a game_contents and frees memory
  */
-int destroy_game (struct game_contents **game_contents) {
+int destroy_game(struct game_contents **game_contents) {
 	struct game_contents *gc_temp;
 	if (!(*game_contents)) // NULL catch
 		return -1;
@@ -30,7 +30,7 @@ int destroy_game (struct game_contents **game_contents) {
 /*
  * Destroys an active_block and frees memory
  */
-int destroy_block (struct active_block **block) {
+int destroy_block(struct active_block **block) {
 	struct active_block *ab_temp;
 	if (!(*block)) // NULL catch
 		return -1;
@@ -43,10 +43,10 @@ int destroy_block (struct active_block **block) {
 /*
  * Generates a random block
  */
-int generate_block (struct active_block **block) {
+int generate_block(struct active_block **block) {
 	// allocate and fill
 	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
-	(*block)->position = ((struct position) BLOCK_START_POSITION);
+	(*block)->position = ((struct position)BLOCK_START_POSITION);
 	(*block)->rotation = none;
 	return 0;
 }
@@ -54,7 +54,7 @@ int generate_block (struct active_block **block) {
 /*
  * Initializes a game_contents struct in memory
  */
-int new_game (struct game_contents **game_contents) {
+int new_game(struct game_contents **game_contents) {
 	// destroy old memory cleanly
 	destroy_game(game_contents);
 	// allocate new memory
@@ -73,7 +73,7 @@ int new_game (struct game_contents **game_contents) {
  *
  * This rotates differently due to the "+ 1" when calculating the offsets
  */
-int get_ec_block_pos (struct active_block *block) {
+int get_ec_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
@@ -81,28 +81,26 @@ int get_ec_block_pos (struct active_block *block) {
 		cur_offset_pos = block_offsets[block->block_type][i];
 		// rotate
 		switch (block->rotation) {
-			case none:
-				x = cur_offset_pos.x;
-				y = cur_offset_pos.y;
-				break;
-			case right:
-				x = cur_offset_pos.y;
-				y = (-1) * cur_offset_pos.x + 1;
-				break;
-			case invert:
-				x = (-1) * cur_offset_pos.x + 1;
-				y = (-1) * cur_offset_pos.y + 1;
-				break;
-			case left:
-				x = (-1) * cur_offset_pos.y + 1;
-				y = cur_offset_pos.x;
-				break;
+		case none:
+			x = cur_offset_pos.x;
+			y = cur_offset_pos.y;
+			break;
+		case right:
+			x = cur_offset_pos.y;
+			y = (-1) * cur_offset_pos.x + 1;
+			break;
+		case invert:
+			x = (-1) * cur_offset_pos.x + 1;
+			y = (-1) * cur_offset_pos.y + 1;
+			break;
+		case left:
+			x = (-1) * cur_offset_pos.y + 1;
+			y = cur_offset_pos.x;
+			break;
 		}
 		// convert offset to position and save
-		block->board_units[i] = ((struct position) {
-			block->position.x + x,
-			block->position.y + y
-		});
+		block->board_units[i] = ((struct position){
+		    block->position.x + x, block->position.y + y});
 	}
 	return 0;
 }
@@ -110,7 +108,7 @@ int get_ec_block_pos (struct active_block *block) {
 /*
  * Gets "block centric" block positions based on offsets and rotation
  */
-int get_bc_block_pos (struct active_block *block) {
+int get_bc_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
@@ -118,28 +116,26 @@ int get_bc_block_pos (struct active_block *block) {
 		cur_offset_pos = block_offsets[block->block_type][i];
 		// rotate
 		switch (block->rotation) {
-			case none:
-				x = cur_offset_pos.x;
-				y = cur_offset_pos.y;
-				break;
-			case right:
-				x = cur_offset_pos.y;
-				y = (-1) * cur_offset_pos.x;
-				break;
-			case invert:
-				x = (-1) * cur_offset_pos.x;
-				y = (-1) * cur_offset_pos.y;
-				break;
-			case left:
-				x = (-1) * cur_offset_pos.y;
-				y = cur_offset_pos.x;
-				break;
+		case none:
+			x = cur_offset_pos.x;
+			y = cur_offset_pos.y;
+			break;
+		case right:
+			x = cur_offset_pos.y;
+			y = (-1) * cur_offset_pos.x;
+			break;
+		case invert:
+			x = (-1) * cur_offset_pos.x;
+			y = (-1) * cur_offset_pos.y;
+			break;
+		case left:
+			x = (-1) * cur_offset_pos.y;
+			y = cur_offset_pos.x;
+			break;
 		}
 		// convert offset to position and save
-		block->board_units[i] = ((struct position) {
-			block->position.x + x,
-			block->position.y + y
-		});
+		block->board_units[i] = ((struct position){
+		    block->position.x + x, block->position.y + y});
 	}
 	return 0;
 }
@@ -148,19 +144,19 @@ int get_bc_block_pos (struct active_block *block) {
  * This should direct blocks that are drawn using unit relational drawing
  * and special blocks to their associated functions.
  */
-int get_block_positions (struct active_block *block) {
+int get_block_positions(struct active_block *block) {
 	switch (block->block_type) {
-		// standard blocks
-		case orange:
-		case blue:
-		case cleve:
-		case rhode:
-		case teewee:
-			return get_bc_block_pos(block);
-		// special blocks
-		case smashboy:
-		case hero:
-			return get_ec_block_pos(block);
+	// standard blocks
+	case orange:
+	case blue:
+	case cleve:
+	case rhode:
+	case teewee:
+		return get_bc_block_pos(block);
+	// special blocks
+	case smashboy:
+	case hero:
+		return get_ec_block_pos(block);
 	}
 	return 0;
 }
@@ -168,8 +164,8 @@ int get_block_positions (struct active_block *block) {
 /*
  * Tests if a block can be placed in the current location
  */
-int test_block (struct game_contents *game_contents,
-		struct active_block *new_block) {
+int test_block(struct game_contents *game_contents,
+               struct active_block *new_block) {
 	int i;
 	struct position cur_unit_pos;
 	// catch NULL block
@@ -179,18 +175,17 @@ int test_block (struct game_contents *game_contents,
 	// test each pos
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = new_block->board_units[i];
-		if ( cur_unit_pos.x < 0 || cur_unit_pos.x >= BOARD_WIDTH ||
-		     cur_unit_pos.y < 0 || cur_unit_pos.y >= BOARD_HEIGHT ||
-		     game_contents->board[cur_unit_pos.y][cur_unit_pos.x]
-		) {
+		if (cur_unit_pos.x < 0 || cur_unit_pos.x >= BOARD_WIDTH ||
+		    cur_unit_pos.y < 0 || cur_unit_pos.y >= BOARD_HEIGHT ||
+		    game_contents->board[cur_unit_pos.y][cur_unit_pos.x]) {
 			return -2;
 		}
 	}
 	return 0;
 }
 
-int clone_block (struct active_block *old_block,
-		struct active_block **new_block) {
+int clone_block(struct active_block *old_block,
+                struct active_block **new_block) {
 	if (!old_block) // NULL catch
 		return -1;
 	*new_block = calloc(1, sizeof(*old_block));
@@ -198,18 +193,18 @@ int clone_block (struct active_block *old_block,
 	return 0;
 }
 
-int delete_line (int line_number, struct game_contents *game_contents) {
+int delete_line(int line_number, struct game_contents *game_contents) {
 	int j, i;
 	for (j = (line_number + 1); j < BOARD_HEIGHT; j++) {
 		for (i = 0; i < BOARD_WIDTH; i++) {
-			game_contents->board[j-1][i] =
-				game_contents->board[j][i];
+			game_contents->board[j - 1][i] =
+			    game_contents->board[j][i];
 		}
 	}
 	return 0;
 }
 
-int cull_lines (struct game_contents *game_contents) {
+int cull_lines(struct game_contents *game_contents) {
 	int i, j, units_in_row;
 	int lines_culled = 0;
 	// iterate and count each row/line
@@ -228,23 +223,23 @@ int cull_lines (struct game_contents *game_contents) {
 	// update scores
 	game_contents->lines_cleared += lines_culled;
 	switch (lines_culled) {
-		case 0:
-			break;
-		case 1:
-			game_contents->points += 100;
-			break;
-		case 2:
-			game_contents->points += 250;
-			break;
-		case 3:
-			game_contents->points += 500;
-			break;
-		case 4:
-			game_contents->points += 1000;
-			break;
-		default:
-			game_contents->points += 777;
-			break;
+	case 0:
+		break;
+	case 1:
+		game_contents->points += 100;
+		break;
+	case 2:
+		game_contents->points += 250;
+		break;
+	case 3:
+		game_contents->points += 500;
+		break;
+	case 4:
+		game_contents->points += 1000;
+		break;
+	default:
+		game_contents->points += 777;
+		break;
 	}
 
 	return 0;
@@ -262,7 +257,7 @@ int game_over(struct game_contents *game_contents) {
 	return 0;
 }
 
-int place_block (struct game_contents *game_contents) {
+int place_block(struct game_contents *game_contents) {
 	int i;
 	struct position cur_unit_pos;
 	get_block_positions(game_contents->active_block);
@@ -270,10 +265,10 @@ int place_block (struct game_contents *game_contents) {
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = game_contents->active_block->board_units[i];
 		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
-			((int) game_contents->active_block->block_type + 1);
+		    ((int)game_contents->active_block->block_type + 1);
 	}
 	// check for lines
-	cull_lines (game_contents);
+	cull_lines(game_contents);
 	// check for game over
 	if (game_over(game_contents))
 		return 2;
@@ -281,7 +276,7 @@ int place_block (struct game_contents *game_contents) {
 	return 0;
 }
 
-int translate_block (int rightward, struct game_contents *game_contents) {
+int translate_block(int rightward, struct game_contents *game_contents) {
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
 	clone_block(game_contents->active_block, &new_block);
@@ -302,7 +297,7 @@ int translate_block (int rightward, struct game_contents *game_contents) {
 	}
 }
 
-int rotate_block (int clockwise, struct game_contents *game_contents) {
+int rotate_block(int clockwise, struct game_contents *game_contents) {
 	int x;
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
@@ -310,7 +305,7 @@ int rotate_block (int clockwise, struct game_contents *game_contents) {
 	if (clockwise)
 		x = 1;
 	else
-		x = (ROT_COUNT-1); // effectively (-1) as it is remaindered
+		x = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
 	// perform rotation
 	new_block->rotation = (new_block->rotation + x) % ROT_COUNT;
 	// test if move was valid
@@ -325,7 +320,7 @@ int rotate_block (int clockwise, struct game_contents *game_contents) {
 	}
 }
 
-int lower_block (int auto_drop, struct game_contents *game_contents) {
+int lower_block(int auto_drop, struct game_contents *game_contents) {
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
 	clone_block(game_contents->active_block, &new_block);
@@ -351,29 +346,30 @@ int lower_block (int auto_drop, struct game_contents *game_contents) {
 	return -1;
 }
 
-int hard_drop (struct game_contents *gc) {
+int hard_drop(struct game_contents *gc) {
 	int ret = 0;
-	while (((ret = lower_block(0, gc)) < 0));
+	while (((ret = lower_block(0, gc)) < 0))
+		;
 	return ret;
 }
 
 int generate_game_view_data(struct game_view_data **gvd,
-		struct game_contents *gc) {
+                            struct game_contents *gc) {
 	int i;
 	struct position cur_unit_pos;
 	// alloc new gvd
 	if (!(*gvd)) {
 		*gvd = calloc(1, sizeof(struct game_view_data));
 	}
-	memcpy((*gvd)->board, gc->board, sizeof(int) *
-			BOARD_WIDTH * BOARD_HEIGHT);
-  
+	memcpy((*gvd)->board, gc->board,
+	       sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
+
 	// draw current piece on gvd
 	get_block_positions(gc->active_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = gc->active_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
-			((int) gc->active_block->block_type ) + 1;
+		    ((int)gc->active_block->block_type) + 1;
 	}
 	// saves scores into gvd
 	(*gvd)->lines_cleared = gc->lines_cleared;

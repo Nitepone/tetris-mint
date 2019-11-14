@@ -4,21 +4,18 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "player.h"
 #include "message.h"
-
+#include "player.h"
 
 /**
  * Write n bytes to socket and return EXIT_SUCCESS or EXIT_FAILURE
  */
-int
-message_nbytes(int socket_fd, char * bytes, int n)
-{
-	int bytes_written = write (socket_fd, bytes, n);
+int message_nbytes(int socket_fd, char *bytes, int n) {
+	int bytes_written = write(socket_fd, bytes, n);
 	fprintf(stderr, "message_nbytes: sent %d bytes\n", bytes_written);
 
 	if (bytes_written < 0) {
-		perror ("write");
+		perror("write");
 		return EXIT_FAILURE;
 	}
 
@@ -28,12 +25,10 @@ message_nbytes(int socket_fd, char * bytes, int n)
 /**
  * Send a list of all online users over the given socket.
  */
-int
-send_online_users (Player * player)
-{
+int send_online_users(Player *player) {
 	int socket_fd = player->fd;
-	StringArray * arr = player_names();
-	Blob * blob = serialize_string_array(arr);
+	StringArray *arr = player_names();
+	Blob *blob = serialize_string_array(arr);
 	shift_blob(blob, 3);
 	*(uint16_t *)blob->bytes = blob->length;
 	blob->bytes[2] = MSG_TYPE_LIST_RESPONSE;
@@ -46,14 +41,12 @@ send_online_users (Player * player)
 	return EXIT_SUCCESS;
 }
 
-Blob *
-serialize_state (Player * player)
-{
+Blob *serialize_state(Player *player) {
 	// first, render the board into the player view
 	generate_game_view_data(&player->view, player->contents);
 
 	// create a blob to contain the message
-	Blob * blob = create_blob(MAXMSG);
+	Blob *blob = create_blob(MAXMSG);
 	// first two bytes represent the length of the message
 	*(uint16_t *)blob->bytes = blob->length;
 	// next byte indicates message type
@@ -69,11 +62,11 @@ serialize_state (Player * player)
 /**
  * Send the board for the given player over the given socket.
  */
-int
-send_board (int socket_fd, struct st_player * player)
-{
+int send_board(int socket_fd, struct st_player *player) {
 	if (socket_fd < 0) {
-		fprintf(stderr, "send_board: skipping invalid file descriptor %d\n", socket_fd);
+		fprintf(stderr,
+		        "send_board: skipping invalid file descriptor %d\n",
+		        socket_fd);
 		return EXIT_FAILURE;
 	}
 
@@ -92,7 +85,7 @@ send_board (int socket_fd, struct st_player * player)
 		return EXIT_FAILURE;
 	}
 
-	Blob * blob = serialize_state(player);
+	Blob *blob = serialize_state(player);
 
 	pthread_mutex_lock(&player->io_lock);
 	int status = message_nbytes(socket_fd, blob->bytes, blob->length);
