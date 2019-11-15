@@ -1,5 +1,5 @@
 #
-# Created by gmakemake (Sparc Sep 12 2019) on Thu Nov 14 16:41:10 2019
+# Created by gmakemake (Sparc Sep 12 2019) on Fri Nov 15 11:38:59 2019
 #
 
 #
@@ -63,13 +63,13 @@ CCLIBFLAGS = $(LIBFLAGS) $(CCLDLIBS)
 
 
 CPP_FILES =	
-C_FILES =	client.c client_conn.c controller.c generic.c list.c message.c player.c render.c server.c solo_main.c test_board.c test_client_conn.c test_player.c tetris_game.c
+C_FILES =	client.c client_conn.c controller.c generic.c list.c message.c offline.c player.c render.c server.c solo_main.c test_board.c test_client_conn.c test_player.c tetris_game.c
 PS_FILES =	
 S_FILES =	
-H_FILES =	client_conn.h controller.h generic.h list.h message.h player.h render.h tetris_game.h
+H_FILES =	client_conn.h controller.h generic.h list.h message.h offline.h player.h render.h tetris_game.h
 SOURCEFILES =	$(H_FILES) $(CPP_FILES) $(C_FILES) $(S_FILES)
 .PRECIOUS:	$(SOURCEFILES)
-OBJFILES =	client_conn.o controller.o generic.o list.o message.o player.o render.o tetris_game.o 
+OBJFILES =	client_conn.o controller.o generic.o list.o message.o offline.o player.o render.o tetris_game.o 
 
 #
 # Main targets
@@ -99,12 +99,13 @@ test_player:	test_player.o $(OBJFILES)
 # Dependencies
 #
 
-client.o:	client_conn.h controller.h render.h
+client.o:	client_conn.h controller.h generic.h offline.h player.h render.h tetris_game.h
 client_conn.o:	client_conn.h controller.h generic.h message.h player.h render.h tetris_game.h
 controller.o:	controller.h
 generic.o:	generic.h
 list.o:	list.h
 message.o:	generic.h message.h player.h tetris_game.h
+offline.o:	controller.h generic.h player.h render.h tetris_game.h
 player.o:	generic.h list.h player.h tetris_game.h
 render.o:	render.h
 server.o:	generic.h message.h player.h tetris_game.h
