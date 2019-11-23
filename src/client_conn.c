@@ -100,7 +100,7 @@ void tetris_list() {
 /**
  * establish a connection to the server
  */
-void tetris_connect(char *host, int port) {
+int tetris_connect(char *host, int port) {
 	/* Create the socket. */
 	sock_fd = get_socket();
 
@@ -111,6 +111,8 @@ void tetris_connect(char *host, int port) {
 		perror("connect (client)");
 		exit(EXIT_FAILURE);
 	}
+
+	return sock_fd;
 }
 
 /**
@@ -163,12 +165,12 @@ int read_names(char **cursor) {
 	return EXIT_SUCCESS;
 }
 
-int read_from_server(int filedes, void *board_ptr) {
+int read_from_server(Player *player) {
 	// 1024 bytes is enough for the whole board
 	char buffer[MAXMSG];
 
 	// remember that more than one TCP packet may be read by this command
-	int nbytes = read(filedes, buffer, MAXMSG);
+	int nbytes = read(player->fd, buffer, MAXMSG);
 
 	// exit early if there was an error
 	if (nbytes < 0) {
@@ -194,7 +196,7 @@ int read_from_server(int filedes, void *board_ptr) {
 
 		switch (cursor[0]) {
 		case MSG_TYPE_BOARD:
-			read_board(&cursor, board_ptr);
+			read_board(&cursor, player->view->board);
 			break;
 		case MSG_TYPE_LIST_RESPONSE:
 			read_names(&cursor);
@@ -212,12 +214,12 @@ int read_from_server(int filedes, void *board_ptr) {
 	return EXIT_SUCCESS;
 }
 
-void *tetris_thread(void *board_ptr) {
+void *tetris_thread(void *player) {
 	// 1024 bytes is enough for the whole board
 	// char buffer[1280];
 	// ncurses message to display to user
 
-	while (read_from_server(sock_fd, board_ptr) == EXIT_SUCCESS) {
+	while (read_from_server((Player *)player) == EXIT_SUCCESS) {
 	}
 
 	return 0;
@@ -228,8 +230,8 @@ void *tetris_thread(void *board_ptr) {
  *
  * run this as a seperate thread
  */
-void tetris_listen(int board[BOARD_HEIGHT][BOARD_WIDTH]) {
-	pthread_create(&listen_thread, NULL, tetris_thread, board);
+void tetris_listen(Player *player) {
+	pthread_create(&listen_thread, NULL, tetris_thread, player);
 }
 
 // define a control set for use over TCP

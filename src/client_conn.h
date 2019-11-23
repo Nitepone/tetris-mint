@@ -5,16 +5,17 @@
 #define BOARD_HEIGHT 24
 
 #include "controller.h"
+#include "player.h"
 
 void tetris_send_message(char *message);
 
-void tetris_connect(char *host, int port);
+int tetris_connect(char *host, int port);
 
 void tetris_disconnect();
 
 void tetris_list();
 
-void tetris_listen(int board[BOARD_HEIGHT][BOARD_WIDTH]);
+void tetris_listen(Player *player);
 
 void tetris_register(char *username);
 

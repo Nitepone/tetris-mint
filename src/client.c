@@ -37,6 +37,7 @@ int run_offline() {
 	char *names[1];
 	names[0] = "You";
 	Player *player = player_create(0, names[0]);
+	start_game(player);
 
 	render_init(1, names);
 	keyboard_input_loop(offline_control_set(player));
@@ -48,11 +49,14 @@ int run_offline() {
  * list the online players and then exit
  */
 int run_list_online_players(char *host, int port) {
-	// connect to the server
-	tetris_connect(host, port);
-	tetris_register("anonymous");
+	// initialize the player list
+	player_init();
 
-	tetris_listen(board);
+	// connect to the server
+	Player *player = player_create(tetris_connect(host, port), "anonymous");
+	tetris_register(player->name);
+
+	tetris_listen(player);
 	tetris_list();
 	sleep(1);
 	tetris_disconnect();
@@ -63,8 +67,12 @@ int run_list_online_players(char *host, int port) {
  * run an online game of tetris
  */
 int run_online(char *host, int port, char *username, char *opponent) {
+	// initialize the player list
+	player_init();
+
 	// connect to the server
-	tetris_connect(host, port);
+	Player *player = player_create(0, username);
+	player->fd = tetris_connect(host, port);
 	tetris_register(username);
 	tetris_opponent(opponent);
 
@@ -73,7 +81,7 @@ int run_online(char *host, int port, char *username, char *opponent) {
 	names[0] = username;
 	names[1] = opponent;
 
-	tetris_listen(board);
+	tetris_listen(player);
 
 	// create the renderer and start the input loop
 	render_init(2, names);

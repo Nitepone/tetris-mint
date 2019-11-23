@@ -97,6 +97,7 @@ int read_from_client(int filedes) {
 		case MSG_TYPE_REGISTER:
 			sscanf(cursor + 1, "%15s", name);
 			player = player_create(filedes, name);
+			start_game(player);
 			player->render = send_board;
 			break;
 		case MSG_TYPE_ROTATE:

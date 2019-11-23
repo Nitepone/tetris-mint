@@ -94,9 +94,6 @@ struct st_player *player_create(int fd, char *name) {
 
 	new_game(&player->contents);
 
-	// start the game!
-	start_game(player);
-
 	return player;
 }
 

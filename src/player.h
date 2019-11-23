@@ -32,6 +32,8 @@ struct st_player *player_create(int fd, char *name);
 
 StringArray *player_names();
 
+void start_game(struct st_player *player);
+
 Player *player_get_by_name(char *name);
 
 void player_set_opponent(Player *player, Player *opponent);
