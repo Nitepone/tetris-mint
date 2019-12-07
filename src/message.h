@@ -2,8 +2,13 @@
 #define MESSAGE_H
 
 #include "player.h"
+#include "tetris_game.h"
 
-#define MAXMSG 1280
+// the message must be able to hold a 4-byte integer for each cell in the
+// board, and must have additional space for metadata (such as the player's
+// name)
+#define MAXMSG (4 * BOARD_WIDTH * BOARD_HEIGHT + 256)
+
 #define MSG_TYPE_REGISTER 'U'
 #define MSG_TYPE_OPPONENT 'O'
 #define MSG_TYPE_ROTATE 'R'

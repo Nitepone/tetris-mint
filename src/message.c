@@ -6,6 +6,7 @@
 
 #include "message.h"
 #include "player.h"
+#include "tetris_game.h"
 
 /**
  * Write n bytes to socket and return EXIT_SUCCESS or EXIT_FAILURE
@@ -55,7 +56,7 @@ Blob *serialize_state(Player *player) {
 	uint8_t name_length = strlen(player->name);
 	memcpy(blob->bytes + 3, player->name, name_length + 1);
 	// the board is sent directly after the null-byte
-	memcpy(blob->bytes + 4 + name_length, player->view->board, 960);
+	memcpy(blob->bytes + 4 + name_length, player->view->board, sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
 	return blob;
 }
 

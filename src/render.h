@@ -1,10 +1,9 @@
-#include <ncurses.h>
-
 #ifndef _RENDER_HEADER
 #define _RENDER_HEADER
 
-#define BOARD_WIDTH 10
-#define BOARD_HEIGHT 24
+#include <ncurses.h>
+
+#include "tetris_game.h"
 
 void render_init(int n, char *names[]);
 

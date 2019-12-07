@@ -1,6 +1,7 @@
 #include <ncurses.h>
 
 #include "render.h"
+#include "tetris_game.h"
 
 // local cache of the user's tetris board
 // global variables and static variables are automatically initialized to zero

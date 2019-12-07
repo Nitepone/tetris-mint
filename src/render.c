@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "render.h"
+#include "tetris_game.h"
 
 #define CELL_WIDTH 2
 #define BOARD_CH_WIDTH (CELL_WIDTH * BOARD_WIDTH)
