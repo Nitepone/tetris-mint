@@ -1,5 +1,5 @@
 #
-# Created by gmakemake (Sparc Sep 12 2019) on Fri Nov 15 11:38:59 2019
+# Created by gmakemake (Sparc Sep 12 2019) on Sat Dec  7 12:29:47 2019
 #
 
 #
@@ -107,11 +107,11 @@ list.o:	list.h
 message.o:	generic.h message.h player.h tetris_game.h
 offline.o:	controller.h generic.h player.h render.h tetris_game.h
 player.o:	generic.h list.h player.h tetris_game.h
-render.o:	render.h
+render.o:	render.h tetris_game.h
 server.o:	generic.h message.h player.h tetris_game.h
 solo_main.o:	tetris_game.h
-test_board.o:	render.h
-test_client_conn.o:	client_conn.h controller.h
+test_board.o:	render.h tetris_game.h
+test_client_conn.o:	client_conn.h controller.h generic.h player.h tetris_game.h
 test_player.o:	generic.h player.h tetris_game.h
 tetris_game.o:	tetris_game.h
 

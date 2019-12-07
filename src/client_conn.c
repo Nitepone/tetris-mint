@@ -14,6 +14,7 @@
 #include "generic.h"
 #include "message.h"
 #include "render.h"
+#include "tetris_game.h"
 
 // for backward compatibility
 #define h_addr h_addr_list[0]
@@ -146,7 +147,7 @@ int read_board(char **cursor, void *board_ptr) {
 	// move the pointer past the name string
 	buffer += name_length + 1;
 	// copy the board
-	memcpy(board, buffer, 960);
+	memcpy(board, buffer, sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
 	render_board(board_name, board);
 
 	return EXIT_SUCCESS;
@@ -166,7 +167,6 @@ int read_names(char **cursor) {
 }
 
 int read_from_server(Player *player) {
-	// 1024 bytes is enough for the whole board
 	char buffer[MAXMSG];
 
 	// remember that more than one TCP packet may be read by this command
@@ -215,10 +215,6 @@ int read_from_server(Player *player) {
 }
 
 void *tetris_thread(void *player) {
-	// 1024 bytes is enough for the whole board
-	// char buffer[1280];
-	// ncurses message to display to user
-
 	while (read_from_server((Player *)player) == EXIT_SUCCESS) {
 	}
 

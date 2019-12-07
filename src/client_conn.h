@@ -1,11 +1,9 @@
 #ifndef _CLIENT_CONN_H
 #define _CLIENT_CONN_H
 
-#define BOARD_WIDTH 10
-#define BOARD_HEIGHT 24
-
 #include "controller.h"
 #include "player.h"
+#include "tetris_game.h"
 
 void tetris_send_message(char *message);
 
