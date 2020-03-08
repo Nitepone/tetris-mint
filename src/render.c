@@ -12,6 +12,7 @@
 struct board_display {
 	char *name;
 	WINDOW *tetris_window;
+	WINDOW *message_window;
 };
 
 static struct board_display *boards;
@@ -79,6 +80,8 @@ void render_init(int n, char *names[]) {
 		boards[i].tetris_window =
 		    create_newwin(BOARD_HEIGHT + 2, BOARD_CH_WIDTH + 2,
 		                  starty - 1, window_lowx - 1);
+		boards[i].message_window = create_newwin(
+		    3, panel_width, starty + BOARD_HEIGHT + 2, panel_lowx);
 	}
 
 	refresh();
@@ -91,12 +94,13 @@ void render_close(void) {
 	endwin();
 }
 
-void render_board(char *name, int board[BOARD_HEIGHT][BOARD_WIDTH]) {
+void render_game_view_data(char *name, struct game_view_data *view) {
+	int(*board)[BOARD_WIDTH] = view->board;
 	// figure out which board is getting rendered
 	struct board_display *bd = board_from_name(name);
 
 	if (bd == 0) {
-		printf("render_board: no board found for name\n");
+		printf("render_game_view_data: no board found for name\n");
 		return;
 	}
 
@@ -122,6 +126,15 @@ void render_board(char *name, int board[BOARD_HEIGHT][BOARD_WIDTH]) {
 
 	box(tetris_window, 0, 0);
 	wrefresh(tetris_window);
+
+	char status[100];
+	sprintf(status, "Points: %d   Lines: %d", view->points,
+	        view->lines_cleared);
+
+	// print the player's score beneath the board
+	mvwprintw(bd->message_window, 1, 1, status);
+	box(bd->message_window, 0, 0);
+	wrefresh(bd->message_window);
 }
 
 ///

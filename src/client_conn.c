@@ -147,7 +147,7 @@ int read_game_view_data(char **cursor, struct game_view_data *view) {
 	buffer += name_length + 1;
 	// copy the game view data
 	memcpy(view, buffer, sizeof(struct game_view_data));
-	render_board(board_name, view->board);
+	render_game_view_data(board_name, view);
 
 	return EXIT_SUCCESS;
 }
