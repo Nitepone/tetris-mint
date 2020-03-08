@@ -136,9 +136,8 @@ void tetris_opponent(char *username) {
 
 void tetris_disconnect() { close(sock_fd); }
 
-int read_board(char **cursor, void *board_ptr) {
+int read_game_view_data(char **cursor, struct game_view_data *view) {
 	char *buffer = *cursor;
-	int(*board)[BOARD_WIDTH] = board_ptr;
 	// move the pointer past the message identifier
 	++buffer;
 	// get the player associated with the board
@@ -146,9 +145,9 @@ int read_board(char **cursor, void *board_ptr) {
 	int name_length = strlen(board_name);
 	// move the pointer past the name string
 	buffer += name_length + 1;
-	// copy the board
-	memcpy(board, buffer, sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
-	render_board(board_name, board);
+	// copy the game view data
+	memcpy(view, buffer, sizeof(struct game_view_data));
+	render_board(board_name, view->board);
 
 	return EXIT_SUCCESS;
 }
@@ -196,7 +195,7 @@ int read_from_server(Player *player) {
 
 		switch (cursor[0]) {
 		case MSG_TYPE_BOARD:
-			read_board(&cursor, player->view->board);
+			read_game_view_data(&cursor, player->view);
 			break;
 		case MSG_TYPE_LIST_RESPONSE:
 			read_names(&cursor);

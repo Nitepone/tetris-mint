@@ -23,6 +23,6 @@ int message_nbytes(int socket_fd, char *bytes, int n);
 
 int send_online_users(Player *player);
 
-int send_board(int socket_fd, Player *player);
+int send_player(int socket_fd, Player *player);
 
 #endif

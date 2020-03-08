@@ -55,18 +55,19 @@ Blob *serialize_state(Player *player) {
 	// next null-terminated bytes are used to store the player name
 	uint8_t name_length = strlen(player->name);
 	memcpy(blob->bytes + 3, player->name, name_length + 1);
-	// the board is sent directly after the null-byte
-	memcpy(blob->bytes + 4 + name_length, player->view->board, sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
+	// the game_view_data is sent directly after the null-byte
+	memcpy(blob->bytes + 4 + name_length, player->view,
+	       sizeof(struct game_view_data));
 	return blob;
 }
 
 /**
- * Send the board for the given player over the given socket.
+ * Send information about the given player, such as the name and game view data
  */
-int send_board(int socket_fd, struct st_player *player) {
+int send_player(int socket_fd, struct st_player *player) {
 	if (socket_fd < 0) {
 		fprintf(stderr,
-		        "send_board: skipping invalid file descriptor %d\n",
+		        "send_player: skipping invalid file descriptor %d\n",
 		        socket_fd);
 		return EXIT_FAILURE;
 	}
