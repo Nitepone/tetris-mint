@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "tetris_game.h"
 
@@ -63,13 +64,15 @@ int generate_new_block(struct game_contents *game_contents) {
 /*
  * Initializes a game_contents struct in memory
  */
-int new_game(struct game_contents **game_contents) {
+int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	// destroy old memory cleanly
 	destroy_game(game_contents);
 	// allocate new memory
-	*game_contents = calloc(1, sizeof(struct game_contents));
+	*game_contents = calloc(1, sizeof(**game_contents));
 	(*game_contents)->active_block = calloc(1, sizeof(struct active_block));
 	// set values
+	(*game_contents)->seed = seed;
+	(*game_contents)->auto_lower_count = 0;
 	(*game_contents)->swap_h_block_count = 0;
 	(*game_contents)->hold_block = NO_BLOCK_VAL;
 	(*game_contents)->lines_cleared = 0;
@@ -78,6 +81,13 @@ int new_game(struct game_contents **game_contents) {
 				    BLOCK_TYPE_COUNT;
 	generate_new_block(*game_contents);
 	return 0;
+}
+
+/*
+ * Start a game using a randomly generated seed
+ */
+int new_game(struct game_contents **game_contents) {
+	return new_seeded_game(game_contents, time(NULL));
 }
 
 /*

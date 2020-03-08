@@ -113,6 +113,13 @@ int rotate_block(int clockwise, struct game_contents *game_contents);
 int new_game(struct game_contents **game_contents);
 
 /*
+ * Starts a game and takes a double pointer for game contents data.
+ * Also takes a seed to base the number generation from.
+ * @return 0
+ */
+int new_seeded_game(struct game_contents **game_contents);
+
+/*
  * Destroy old game data
  * Frees the memory and sets the second pointer to NULL
  * @return 0
@@ -130,8 +137,14 @@ int generate_game_view_data(struct game_view_data **gvd,
  */
 int game_over(struct game_contents *game_contents);
 
+/*
+ * Forces the current piece to drop until placed immediately
+ */
 int hard_drop(struct game_contents *game_contents);
 
+/*
+ * Swaps the currently used block with the one in holding
+ */
 int swap_hold_block(struct game_contents *game_contents);
 
 #endif /* !TETRIS_GAME_H */
