@@ -9,14 +9,17 @@
 #define TETRIS_GAME_H
 
 #define MAX_BLOCK_UNITS 4
-#define BLOCK_START_POSITION                                                   \
+#define BLOCK_START_POSITION   \
 	{ 4, 21 }
 
 #define MAX_AUTO_LOWER 3
+#define MAX_SWAP_H 1
 
 #define BOARD_HEIGHT 24
 #define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
+
+#define NO_BLOCK_VAL -1
 
 enum rotation {
 	none,
@@ -66,13 +69,19 @@ struct game_contents {
 	int points;
 	int lines_cleared;
 	int auto_lower_count;
+	int swap_h_block_count;
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
+	unsigned int seed;
+	enum block_type next_block;
+	enum block_type hold_block;
 	struct active_block *active_block;
 };
 
 struct game_view_data {
 	int points;
 	int lines_cleared;
+	enum block_type next_block;
+	enum block_type hold_block;
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
 };
 
@@ -122,5 +131,7 @@ int generate_game_view_data(struct game_view_data **gvd,
 int game_over(struct game_contents *game_contents);
 
 int hard_drop(struct game_contents *game_contents);
+
+int swap_hold_block(struct game_contents *game_contents);
 
 #endif /* !TETRIS_GAME_H */
