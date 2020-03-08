@@ -9,7 +9,7 @@ void render_init(int n, char *names[]);
 
 void render_close(void);
 
-void render_board(char *name, int board[BOARD_HEIGHT][BOARD_WIDTH]);
+void render_game_view_data(char *board_name, struct game_view_data *view);
 
 void render_message(char *text);
 

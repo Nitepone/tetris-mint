@@ -98,7 +98,7 @@ int read_from_client(int filedes) {
 			sscanf(cursor + 1, "%15s", name);
 			player = player_create(filedes, name);
 			start_game(player);
-			player->render = send_board;
+			player->render = send_player;
 			break;
 		case MSG_TYPE_ROTATE:
 			rotate_block(cursor[1], player->contents);
@@ -132,12 +132,12 @@ int read_from_client(int filedes) {
 		cursor += message_size;
 	}
 
-	// send the board to the player
-	send_board(player->fd, player);
+	// send the game view data to the player
+	send_player(player->fd, player);
 
-	// send the board to the player's opponent
+	// send the game view data to the player's opponent
 	if (player->opponent)
-		send_board(player->opponent->fd, player);
+		send_player(player->opponent->fd, player);
 
 	return 0;
 }

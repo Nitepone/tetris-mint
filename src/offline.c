@@ -17,7 +17,7 @@ static Player *offline_player;
  */
 static int renderish(int fd, Player *player) {
 	generate_game_view_data(&player->view, player->contents);
-	render_board(player->name, player->view->board);
+	render_game_view_data(player->name, player->view);
 	return EXIT_SUCCESS;
 }
 
