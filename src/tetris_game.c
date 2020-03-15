@@ -47,7 +47,6 @@ int destroy_block(struct active_block **block) {
 int spawn_active_block(struct active_block **block, enum block_type type) {
 	// allocate and fill
 	(*block)->block_type = type;
-	//(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
 	(*block)->position = ((struct position)BLOCK_START_POSITION);
 	(*block)->rotation = none;
 	return 0;
@@ -55,9 +54,9 @@ int spawn_active_block(struct active_block **block, enum block_type type) {
 
 int generate_new_block(struct game_contents *game_contents) {
 	spawn_active_block(&game_contents->active_block,
-			   game_contents->next_block);
-	game_contents->next_block = rand_r(&game_contents->seed) %
-				    BLOCK_TYPE_COUNT;
+	                   game_contents->next_block);
+	game_contents->next_block =
+	    rand_r(&game_contents->seed) % BLOCK_TYPE_COUNT;
 	return 0;
 }
 
@@ -77,8 +76,8 @@ int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	(*game_contents)->hold_block = NO_BLOCK_VAL;
 	(*game_contents)->lines_cleared = 0;
 	(*game_contents)->points = 0;
-	(*game_contents)->next_block = rand_r(&(*game_contents)->seed) %
-				    BLOCK_TYPE_COUNT;
+	(*game_contents)->next_block =
+	    rand_r(&(*game_contents)->seed) % BLOCK_TYPE_COUNT;
 	generate_new_block(*game_contents);
 	return 0;
 }
@@ -415,8 +414,7 @@ int swap_hold_block(struct game_contents *gc) {
 	if (gc->hold_block == NO_BLOCK_VAL) {
 		gc->hold_block = gc->active_block->block_type;
 		generate_new_block(gc);
-	}
-	else {
+	} else {
 		active_type = gc->hold_block;
 		gc->hold_block = gc->active_block->block_type;
 		spawn_active_block(&gc->active_block, active_type);

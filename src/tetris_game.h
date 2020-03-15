@@ -9,7 +9,7 @@
 #define TETRIS_GAME_H
 
 #define MAX_BLOCK_UNITS 4
-#define BLOCK_START_POSITION   \
+#define BLOCK_START_POSITION                                                   \
 	{ 4, 21 }
 
 #define MAX_AUTO_LOWER 3
@@ -117,7 +117,7 @@ int new_game(struct game_contents **game_contents);
  * Also takes a seed to base the number generation from.
  * @return 0
  */
-int new_seeded_game(struct game_contents **game_contents);
+int new_seeded_game(struct game_contents **game_contents, unsigned int seed);
 
 /*
  * Destroy old game data
