@@ -13,10 +13,13 @@
 	{ 4, 21 }
 
 #define MAX_AUTO_LOWER 3
+#define MAX_SWAP_H 1
 
 #define BOARD_HEIGHT 24
 #define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
+
+#define NO_BLOCK_VAL -1
 
 enum rotation {
 	none,
@@ -66,13 +69,19 @@ struct game_contents {
 	int points;
 	int lines_cleared;
 	int auto_lower_count;
+	int swap_h_block_count;
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
+	unsigned int seed;
+	enum block_type next_block;
+	enum block_type hold_block;
 	struct active_block *active_block;
 };
 
 struct game_view_data {
 	int points;
 	int lines_cleared;
+	enum block_type next_block;
+	enum block_type hold_block;
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
 };
 
@@ -104,6 +113,13 @@ int rotate_block(int clockwise, struct game_contents *game_contents);
 int new_game(struct game_contents **game_contents);
 
 /*
+ * Starts a game and takes a double pointer for game contents data.
+ * Also takes a seed to base the number generation from.
+ * @return 0
+ */
+int new_seeded_game(struct game_contents **game_contents, unsigned int seed);
+
+/*
  * Destroy old game data
  * Frees the memory and sets the second pointer to NULL
  * @return 0
@@ -121,6 +137,14 @@ int generate_game_view_data(struct game_view_data **gvd,
  */
 int game_over(struct game_contents *game_contents);
 
+/*
+ * Forces the current piece to drop until placed immediately
+ */
 int hard_drop(struct game_contents *game_contents);
+
+/*
+ * Swaps the currently used block with the one in holding
+ */
+int swap_hold_block(struct game_contents *game_contents);
 
 #endif /* !TETRIS_GAME_H */

@@ -78,6 +78,9 @@ int main() {
 		case 'w':
 			hard_drop(game_contents);
 			break;
+		case 'c':
+			swap_hold_block(game_contents);
+			break;
 		}
 		print_board();
 	}

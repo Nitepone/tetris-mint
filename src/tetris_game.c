@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "tetris_game.h"
 
@@ -41,30 +42,51 @@ int destroy_block(struct active_block **block) {
 }
 
 /*
- * Generates a random block
+ * Generates a block at the top of the game board
  */
-int generate_block(struct active_block **block) {
+int spawn_active_block(struct active_block **block, enum block_type type) {
 	// allocate and fill
-	(*block)->block_type = rand() % (BLOCK_TYPE_COUNT);
+	(*block)->block_type = type;
 	(*block)->position = ((struct position)BLOCK_START_POSITION);
 	(*block)->rotation = none;
+	return 0;
+}
+
+int generate_new_block(struct game_contents *game_contents) {
+	spawn_active_block(&game_contents->active_block,
+	                   game_contents->next_block);
+	game_contents->next_block =
+	    rand_r(&game_contents->seed) % BLOCK_TYPE_COUNT;
 	return 0;
 }
 
 /*
  * Initializes a game_contents struct in memory
  */
-int new_game(struct game_contents **game_contents) {
+int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	// destroy old memory cleanly
 	destroy_game(game_contents);
 	// allocate new memory
-	*game_contents = calloc(1, sizeof(struct game_contents));
+	*game_contents = calloc(1, sizeof(**game_contents));
 	(*game_contents)->active_block = calloc(1, sizeof(struct active_block));
 	// set values
+	(*game_contents)->seed = seed;
+	(*game_contents)->auto_lower_count = 0;
+	(*game_contents)->swap_h_block_count = 0;
+	(*game_contents)->hold_block = NO_BLOCK_VAL;
 	(*game_contents)->lines_cleared = 0;
 	(*game_contents)->points = 0;
-	generate_block(&(*game_contents)->active_block);
+	(*game_contents)->next_block =
+	    rand_r(&(*game_contents)->seed) % BLOCK_TYPE_COUNT;
+	generate_new_block(*game_contents);
 	return 0;
+}
+
+/*
+ * Start a game using a randomly generated seed
+ */
+int new_game(struct game_contents **game_contents) {
+	return new_seeded_game(game_contents, time(NULL));
 }
 
 /*
@@ -272,7 +294,8 @@ int place_block(struct game_contents *game_contents) {
 	// check for game over
 	if (game_over(game_contents))
 		return 2;
-	generate_block(&game_contents->active_block);
+	generate_new_block(game_contents);
+	game_contents->swap_h_block_count = 0;
 	return 0;
 }
 
@@ -371,9 +394,32 @@ int generate_game_view_data(struct game_view_data **gvd,
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
 		    ((int)gc->active_block->block_type) + 1;
 	}
-	// saves scores into gvd
+	// save scores into gvd
 	(*gvd)->lines_cleared = gc->lines_cleared;
 	(*gvd)->points = gc->points;
+	// save next and hold blocks
+	(*gvd)->hold_block = gc->hold_block;
+	(*gvd)->next_block = gc->next_block;
 
 	return 0;
 }
+
+int swap_hold_block(struct game_contents *gc) {
+	enum block_type active_type;
+
+	// catch too many swaps between block placement
+	if (gc->swap_h_block_count >= MAX_SWAP_H)
+		return -1;
+
+	if (gc->hold_block == NO_BLOCK_VAL) {
+		gc->hold_block = gc->active_block->block_type;
+		generate_new_block(gc);
+	} else {
+		active_type = gc->hold_block;
+		gc->hold_block = gc->active_block->block_type;
+		spawn_active_block(&gc->active_block, active_type);
+	}
+
+	gc->swap_h_block_count++;
+	return 0;
+};
