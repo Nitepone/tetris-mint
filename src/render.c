@@ -175,7 +175,6 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	wrefresh(bd->message_window);
 
 	// print the next piece and swap piece in the top window
-	// wclear(bd->top_window);
 	wbkgd(bd->top_window, COLOR_PAIR(0));
 	render_tetris_piece(bd->top_window, view->next_block, right,
 	                    (struct position){1, 1});
