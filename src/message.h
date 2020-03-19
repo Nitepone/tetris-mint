@@ -15,6 +15,7 @@
 #define MSG_TYPE_TRANSLATE 'T'
 #define MSG_TYPE_LOWER 'L'
 #define MSG_TYPE_DROP 'D'
+#define MSG_TYPE_SWAP_HOLD 'S'
 #define MSG_TYPE_LIST 'P'
 #define MSG_TYPE_BOARD 'B'
 #define MSG_TYPE_LIST_RESPONSE 'Y'

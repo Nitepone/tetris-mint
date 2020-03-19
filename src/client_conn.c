@@ -92,6 +92,13 @@ static void tetris_drop() {
 	tetris_send_message(message);
 }
 
+static void tetris_swap_hold() {
+	char message[128];
+	sprintf(message, "%c", MSG_TYPE_SWAP_HOLD);
+	tetris_send_message(message);
+	return;
+}
+
 void tetris_list() {
 	char message[128];
 	sprintf(message, "%c", MSG_TYPE_LIST);
@@ -233,6 +240,7 @@ void tetris_listen(Player *player) {
 static const TetrisControlSet TCPControlSet = {.translate = tetris_translate,
                                                .lower = tetris_lower,
                                                .rotate = tetris_rotate,
-                                               .drop = tetris_drop};
+                                               .drop = tetris_drop,
+                                               .swap_hold = tetris_swap_hold};
 
 TetrisControlSet tcp_control_set(void) { return TCPControlSet; }

@@ -41,12 +41,18 @@ static void offline_drop() {
 	renderish(0, offline_player);
 }
 
+static void offline_swap_hold() {
+	swap_hold_block(offline_player->contents);
+	renderish(0, offline_player);
+}
+
 // define a control set for use offline
-static const TetrisControlSet OfflineControlSet = {.translate =
-                                                       offline_translate,
-                                                   .lower = offline_lower,
-                                                   .rotate = offline_rotate,
-                                                   .drop = offline_drop};
+static const TetrisControlSet OfflineControlSet = {
+    .translate = offline_translate,
+    .lower = offline_lower,
+    .rotate = offline_rotate,
+    .drop = offline_drop,
+    .swap_hold = offline_swap_hold};
 
 /**
  * creates an offline control set for the given player and set the render
