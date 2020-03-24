@@ -105,6 +105,24 @@ static void render_cell(WINDOW *win, int row, int col, int color) {
 	         NULL);
 }
 
+/**
+ * Set the foreground and background color of an entine window
+ *
+ * NOTE: This is different than the bkgd family of functions in ncurses. This
+ * function overrides any existing colors, even if they do not match the
+ * previous color.
+ *
+ * @param win   ncurses window
+ * @param color color-pair index as passed to ncurses init_pair and used with
+ *              the COLOR_PAIR macro
+ */
+static void fill_window(WINDOW *win, short color) {
+	int height, width;
+	getmaxyx(stdscr,height,width);
+	for (int row=0;row<height;row++)
+		mvwchgat(win, row, 0, width, 0, color, NULL);
+}
+
 static struct position rotate_position(struct position pos, enum rotation rot) {
 	switch (rot) {
 	case right:
@@ -175,7 +193,7 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	wrefresh(bd->message_window);
 
 	// print the next piece and swap piece in the top window
-	wbkgd(bd->top_window, COLOR_PAIR(0));
+	fill_window(bd->top_window, COLOR_PAIR(0));
 	render_tetris_piece(bd->top_window, view->next_block, right,
 	                    (struct position){1, 1});
 	render_tetris_piece(bd->top_window, view->hold_block, left,
