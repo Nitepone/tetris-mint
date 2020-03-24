@@ -108,7 +108,7 @@ void render_close(void) {
  *              the COLOR_PAIR macro
  */
 static void render_cell(WINDOW *win, int row, int col, short color) {
-	for (int i=1;i<=CELL_WIDTH; i++)
+	for (int i = 1; i <= CELL_WIDTH; i++)
 		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
 	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
 	         NULL);
@@ -127,8 +127,8 @@ static void render_cell(WINDOW *win, int row, int col, short color) {
  */
 static void fill_window(WINDOW *win, short color) {
 	int height, width;
-	getmaxyx(stdscr,height,width);
-	for (int row=0;row<height;row++)
+	getmaxyx(stdscr, height, width);
+	for (int row = 0; row < height; row++)
 		mvwchgat(win, row, 0, width, 0, color, NULL);
 }
 
