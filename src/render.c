@@ -98,9 +98,18 @@ void render_close(void) {
 	endwin();
 }
 
-static void render_cell(WINDOW *win, int row, int col, int color) {
-	mvwaddch(win, 1 + row, 1 + col * CELL_WIDTH, ' ');
-	mvwaddch(win, 1 + row, 2 + col * CELL_WIDTH, ' ');
+/**
+ * Render the terminal background for a coordinate pair in cell-space
+ *
+ * @param win   ncurses window
+ * @param row   index of row
+ * @param col   index of column
+ * @param color color-pair index as passed to ncurses init_pair and used with
+ *              the COLOR_PAIR macro
+ */
+static void render_cell(WINDOW *win, int row, int col, short color) {
+	for (int i=1;i<=CELL_WIDTH; i++)
+		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
 	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
 	         NULL);
 }
