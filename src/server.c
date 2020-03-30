@@ -112,6 +112,9 @@ int read_from_client(int filedes) {
 		case MSG_TYPE_DROP:
 			hard_drop(player->contents);
 			break;
+		case MSG_TYPE_SWAP_HOLD:
+			swap_hold_block(player->contents);
+			break;
 		case MSG_TYPE_OPPONENT:
 			fprintf(stderr, "Opponent: %s\n", cursor + 1);
 			opponent = player_get_by_name(cursor + 1);

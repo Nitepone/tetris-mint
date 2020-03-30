@@ -23,6 +23,9 @@ void keyboard_input_loop(TetrisControlSet controls) {
 		case 'e':
 			controls.rotate(1);
 			break;
+		case 'c':
+			controls.swap_hold();
+			break;
 		}
 	}
 }

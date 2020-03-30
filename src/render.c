@@ -13,6 +13,7 @@ struct board_display {
 	char *name;
 	WINDOW *tetris_window;
 	WINDOW *message_window;
+	WINDOW *top_window;
 };
 
 static struct board_display *boards;
@@ -55,6 +56,7 @@ void render_init(int n, char *names[]) {
 	start_color();
 
 	// create numbered fg/bg pairs to be used by the COLOR_PAIR macro later
+	init_pair(0, COLOR_WHITE, COLOR_WHITE);
 	init_pair(1, COLOR_CYAN, COLOR_CYAN);
 	init_pair(2, COLOR_RED, COLOR_RED);
 	init_pair(3, COLOR_GREEN, COLOR_GREEN);
@@ -82,6 +84,8 @@ void render_init(int n, char *names[]) {
 		                  starty - 1, window_lowx - 1);
 		boards[i].message_window = create_newwin(
 		    3, panel_width, starty + BOARD_HEIGHT + 2, panel_lowx);
+		boards[i].top_window = create_newwin(
+		    5, BOARD_CH_WIDTH + 2, starty - 7, window_lowx - 1);
 	}
 
 	refresh();
@@ -92,6 +96,78 @@ void render_close(void) {
 	// destroy_win(tetris_window);
 	// end curses mode
 	endwin();
+}
+
+/**
+ * Render the terminal background for a coordinate pair in cell-space
+ *
+ * @param win   ncurses window
+ * @param row   index of row
+ * @param col   index of column
+ * @param color color-pair index as passed to ncurses init_pair and used with
+ *              the COLOR_PAIR macro
+ */
+static void render_cell(WINDOW *win, int row, int col, short color) {
+	for (int i = 1; i <= CELL_WIDTH; i++)
+		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
+	         NULL);
+}
+
+/**
+ * Set the foreground and background color of an entine window
+ *
+ * NOTE: This is different than the bkgd family of functions in ncurses. This
+ * function overrides any existing colors, even if they do not match the
+ * previous color.
+ *
+ * @param win   ncurses window
+ * @param color color-pair index as passed to ncurses init_pair and used with
+ *              the COLOR_PAIR macro
+ */
+static void fill_window(WINDOW *win, short color) {
+	int height, width;
+	getmaxyx(stdscr, height, width);
+	for (int row = 0; row < height; row++)
+		mvwchgat(win, row, 0, width, 0, color, NULL);
+}
+
+static struct position rotate_position(struct position pos, enum rotation rot) {
+	switch (rot) {
+	case right:
+		return (struct position){.x = pos.y, .y = -pos.x};
+	case invert:
+		return (struct position){.x = -pos.x, .y = -pos.y};
+	case left:
+		return (struct position){.x = -pos.y, .y = pos.x};
+	case none:
+	default:
+		return pos;
+	}
+}
+
+/**
+ * render a tetris piece in a window
+ *
+ * IMPORTANT NOTE: The position for this function is given in ncurses space,
+ * where the origin is the top left. The origin for the tetris library is bottom
+ * left. As a result, this function flips the Y axis while rendering pieces.
+ *
+ * @param win   ncurses window
+ * @param piece tetris piece
+ * @param rot   tetris piece rotation
+ * @param pos   position in ncurses space relative to the window
+ */
+static void render_tetris_piece(WINDOW *win, enum block_type piece,
+                                enum rotation rot, struct position pos) {
+	if (piece < 0 || piece >= BLOCK_TYPE_COUNT)
+		return;
+	struct position cell_offset;
+	for (int i = 0; i < MAX_BLOCK_UNITS; i++) {
+		cell_offset = rotate_position(block_offsets[piece][i], rot);
+		render_cell(win, pos.y - cell_offset.y, pos.x + cell_offset.x,
+		            piece + 1);
+	}
 }
 
 void render_game_view_data(char *name, struct game_view_data *view) {
@@ -109,20 +185,9 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	// render the tetris window
 	int r, c;
 	for (r = 0; r < BOARD_HEIGHT; r++)
-		for (c = 0; c < BOARD_WIDTH; c++) {
-			mvwaddch(tetris_window, BOARD_HEIGHT - r,
-			         1 + c * CELL_WIDTH, ' ');
-			mvwaddch(tetris_window, BOARD_HEIGHT - r,
-			         2 + c * CELL_WIDTH, ' ');
-			if (board[r][c])
-				mvwchgat(tetris_window, BOARD_HEIGHT - r,
-				         1 + c * CELL_WIDTH, CELL_WIDTH, 0,
-				         board[r][c], NULL);
-			else
-				mvwchgat(tetris_window, BOARD_HEIGHT - r,
-				         1 + c * CELL_WIDTH, CELL_WIDTH, 0, 0,
-				         NULL);
-		}
+		for (c = 0; c < BOARD_WIDTH; c++)
+			render_cell(tetris_window, BOARD_HEIGHT - r - 1, c,
+			            board[r][c]);
 
 	box(tetris_window, 0, 0);
 	wrefresh(tetris_window);
@@ -135,6 +200,15 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	mvwprintw(bd->message_window, 1, 1, status);
 	box(bd->message_window, 0, 0);
 	wrefresh(bd->message_window);
+
+	// print the next piece and swap piece in the top window
+	fill_window(bd->top_window, COLOR_PAIR(0));
+	render_tetris_piece(bd->top_window, view->next_block, right,
+	                    (struct position){1, 1});
+	render_tetris_piece(bd->top_window, view->hold_block, left,
+	                    (struct position){BOARD_WIDTH - 2, 1});
+	box(bd->top_window, 0, 0);
+	wrefresh(bd->top_window);
 }
 
 ///

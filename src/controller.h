@@ -10,6 +10,7 @@ typedef struct st_tetris_control_set {
 	void (*lower)(int);
 	void (*rotate)(int);
 	void (*drop)(void);
+	void (*swap_hold)(void);
 } TetrisControlSet;
 
 /**
