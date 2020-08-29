@@ -22,12 +22,14 @@ list(APPEND ttetris_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/render.c
 )
 
+add_library(ttetrislib OBJECT ${ttetris_SOURCES})
+
 add_executable(solo_main solo_main.c tetris_game.c)
-add_executable(client client.c ${ttetris_SOURCES})
-add_executable(server server.c ${ttetris_SOURCES})
-add_executable(test_render test_render.c ${ttetris_SOURCES})
-add_executable(test_client_conn test_client_conn.c ${ttetris_SOURCES})
-add_executable(test_player test_player.c ${ttetris_SOURCES})
+add_executable(client client.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(server server.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(test_render test_render.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(test_client_conn test_client_conn.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(test_player test_player.c $<TARGET_OBJECTS:ttetrislib>)
 
 target_link_libraries(solo_main ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(client ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
