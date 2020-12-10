@@ -1,0 +1,21 @@
+name: CMake
+
+on: [push]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./src
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build Make
+      run: cmake . -Bbuild
+
+    - name: Build Code
+      run: cd build && make -j$(nproc)
