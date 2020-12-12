@@ -4,6 +4,8 @@
 
 struct st_list *list_create() {
 	struct st_list *list = malloc(sizeof(struct st_list));
+	list->head = NULL;
+	list->length = 0;
 	return list;
 }
 
