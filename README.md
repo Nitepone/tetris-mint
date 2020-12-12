@@ -4,6 +4,8 @@ Hackathon approved tetris cli online
 
 ## Building
 
+Also see [docs/DEVELOP.md](docs/DEVELOP.md).
+
 ### Setup
 
 - Make sure you have dependencies installed
