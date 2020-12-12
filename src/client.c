@@ -19,8 +19,7 @@ int board[BOARD_HEIGHT][BOARD_WIDTH];
 /**
  * print the usage and exit
  */
-void usage()
-{
+void usage() {
 	fprintf(
 	    stderr,
 	    "Usage: ./client [-h] [-l] [-s] [-u USERNAME] [-o OPPONENT] [-a "
