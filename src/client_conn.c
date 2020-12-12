@@ -21,7 +21,6 @@
 
 // socket to communicate with server
 static int sock_fd = -1;
-struct sockaddr_in servername;
 pthread_t listen_thread;
 
 /**
@@ -109,6 +108,8 @@ void tetris_list() {
  * establish a connection to the server
  */
 int tetris_connect(char *host, int port) {
+	struct sockaddr_in servername;
+
 	/* Create the socket. */
 	sock_fd = get_socket();
 
