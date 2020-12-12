@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Pre-commit hook for automatically checking clang-format to catch issues early
+#
+
+ANSI_BOLD=`tput bold`
+ANSI_RED=`tput setaf 1`
+ANSI_RESET=`tput sgr0`
+
+#
+# For the time being, we should support early versions of clang-format. In
+# version 10, a number of new command line arguments like `--dry-run` were
+# added, but this package isn't easily available on all systems.
+#
+git diff --cached --name-only --diff-filter=ACMRT |
+	grep "\.[ch]$" |
+	xargs -n1 clang-format -style=file -output-replacements-xml |
+	grep "<replacement " >/dev/null
+
+if [ $? -ne 1 ]; then
+	cat <<-EOF
+		${ANSI_RED}Git pre-commit check failed:
+		The commit does not match clang-format${ANSI_RESET}
+
+		To fix this, run ${ANSI_BOLD}clang-format -style=file *.h *.c${ANSI_RESET} from the src directory
+	EOF
+	exit 1
+fi
+
