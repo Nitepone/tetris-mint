@@ -84,7 +84,8 @@ struct st_player *player_create(int fd, char *name) {
 	player->name = malloc(strlen(name) + 1);
 	memcpy(player->name, name, strlen(name) + 1);
 	player->opponent = NULL;
-	player->contents = malloc(sizeof(struct game_contents));
+	/* contents will be initialized by new_game */
+	player->contents = NULL;
 	player->view = malloc(sizeof(struct game_view_data));
 	list_append(player_list, player);
 	fprintf(stderr, "player_create: Created player '%s'\n", player->name);
