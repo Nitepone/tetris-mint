@@ -1,6 +1,5 @@
 #include <errno.h>
 #include <inttypes.h>
-#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +9,6 @@
 #include "offline.h"
 #include "player.h"
 #include "render.h"
-#include "tetris_game.h"
 
 /**
  * print the usage and exit

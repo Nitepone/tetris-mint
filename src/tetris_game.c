@@ -5,7 +5,6 @@
  * Distributed under terms of the MIT license.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>

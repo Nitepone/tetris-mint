@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <inttypes.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -11,7 +10,6 @@
 #include <unistd.h>
 
 #include "client_conn.h"
-#include "generic.h"
 #include "message.h"
 #include "render.h"
 #include "tetris_game.h"

@@ -1,5 +1,3 @@
-#include <ncurses.h>
-
 #include "render.h"
 #include "tetris_game.h"
 
