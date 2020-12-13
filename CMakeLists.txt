@@ -1,5 +1,5 @@
 project(terminally-tetris C)
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)

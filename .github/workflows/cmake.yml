@@ -26,6 +26,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Download Submodules
+      run: git submodule update --init --recursive
+
     - name: Build Make
       run: cmake ./
 

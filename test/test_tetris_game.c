@@ -7,9 +7,10 @@
 
 #include "tetris_game.h"
 #include "unity.h"
-
-void setUp (void) {} /* Is run before every test, put unit init calls here. */
-void tearDown (void) {} /* Is run after every test, put unit clean-up calls here. */
+/* Is run before every test, put unit init calls here. */
+void setUp(void) {}
+/* Is run after every test, put unit clean-up calls here. */
+void tearDown(void) {}
 
 void test_basic(void) {
 	struct game_contents *gc = NULL;
@@ -21,6 +22,3 @@ int main(void) {
 	RUN_TEST(test_basic);
 	return UNITY_END();
 }
-
-
-
