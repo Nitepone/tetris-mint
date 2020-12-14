@@ -34,7 +34,7 @@ void set_string_array(StringArray *arr, int index, char *value) {
 	memcpy(arr->strings[index], value, len);
 }
 
-char *get_string_array(StringArray *arr, int index, char *value) {
+char *get_string_array(StringArray *arr, int index) {
 	return arr->strings[index];
 }
 

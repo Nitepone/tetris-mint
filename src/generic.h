@@ -17,7 +17,7 @@ typedef struct st_string_array {
 
 StringArray *create_string_array(int length);
 void set_string_array(StringArray *arr, int index, char *value);
-char *get_string_array(StringArray *arr, int index, char *value);
+char *get_string_array(StringArray *arr, int index);
 void destroy_string_array(StringArray *arr);
 Blob *serialize_string_array(StringArray *arr);
 StringArray *deserialize_string_array(Blob *blob);

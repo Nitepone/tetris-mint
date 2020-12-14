@@ -21,27 +21,27 @@ static int renderish(int fd, Player *player) {
 	return EXIT_SUCCESS;
 }
 
-static void offline_translate(int x) {
+static void offline_translate(void *context, int x) {
 	translate_block(x, offline_player->contents);
 	renderish(0, offline_player);
 }
 
-static void offline_lower() {
+static void offline_lower(void *context) {
 	lower_block(0, offline_player->contents);
 	renderish(0, offline_player);
 }
 
-static void offline_rotate(int theta) {
+static void offline_rotate(void *context, int theta) {
 	rotate_block(theta, offline_player->contents);
 	renderish(0, offline_player);
 }
 
-static void offline_drop() {
+static void offline_drop(void *context) {
 	hard_drop(offline_player->contents);
 	renderish(0, offline_player);
 }
 
-static void offline_swap_hold() {
+static void offline_swap_hold(void *context) {
 	swap_hold_block(offline_player->contents);
 	renderish(0, offline_player);
 }

@@ -81,14 +81,12 @@ int read_from_client(int filedes) {
 	char name[16];
 
 	while (cursor < end) {
-		// the first two bytes of the message should be used to indicate
-		// the remaining number of bytes in the message
-		uint16_t message_size = (buffer[0] << 8) + buffer[1];
-		fprintf(stderr, "read_from_client: message size is %d\n",
-		        message_size);
+		MessageHeader *header = (MessageHeader *)buffer;
+		fprintf(stderr, "read_from_client: id=%d n_bytes=%d\n",
+		        header->request_id, header->content_length);
 
 		// increment the cursor to the start of the message body
-		cursor += 2;
+		cursor += sizeof(MessageHeader);
 		fprintf(stderr, "message body: %s\n", cursor);
 
 		switch (cursor[0]) {
@@ -120,7 +118,7 @@ int read_from_client(int filedes) {
 				player_set_opponent(player, opponent);
 			break;
 		case MSG_TYPE_LIST:
-			send_online_users(player);
+			send_online_users(filedes, header->request_id);
 			break;
 		default:
 			fprintf(stderr,
@@ -130,14 +128,15 @@ int read_from_client(int filedes) {
 		}
 
 		// increment the cursor past the message body end
-		cursor += message_size;
+		cursor += header->content_length;
 	}
 
 	// send the game view data to the player
-	send_player(player->fd, player);
+	if (player)
+		send_player(player->fd, player);
 
 	// send the game view data to the player's opponent
-	if (player->opponent)
+	if (player && player->opponent)
 		send_player(player->opponent->fd, player);
 
 	return 0;

@@ -4,6 +4,8 @@
 #include "player.h"
 #include "tetris_game.h"
 
+typedef char MessageTypeField[1];
+
 // the message must be able to hold a 4-byte integer for each cell in the
 // board, and must have additional space for metadata (such as the player's
 // name)
@@ -20,9 +22,16 @@
 #define MSG_TYPE_BOARD 'B'
 #define MSG_TYPE_LIST_RESPONSE 'Y'
 
-int message_nbytes(int socket_fd, char *bytes, int n);
+typedef struct ttetris_msg_header MessageHeader;
 
-int send_online_users(Player *player);
+struct ttetris_msg_header {
+	u_int16_t request_id;
+	u_int16_t content_length;
+};
+
+int message_nbytes(int socket_fd, char *bytes, int n, int request_id);
+
+int send_online_users(int filedes, int request_id);
 
 int send_player(int socket_fd, Player *player);
 

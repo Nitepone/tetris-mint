@@ -35,7 +35,7 @@ int run_offline() {
 	start_game(player);
 
 	render_init(1, names);
-	keyboard_input_loop(offline_control_set(player));
+	keyboard_input_loop(offline_control_set(player), NULL);
 	render_close();
 	return EXIT_SUCCESS;
 }
@@ -47,14 +47,19 @@ int run_list_online_players(char *host, int port) {
 	// initialize the player list
 	player_init();
 
-	// connect to the server
-	Player *player = player_create(tetris_connect(host, port), "anonymous");
-	tetris_register(player->name);
+	NetClient *net_client = net_client_init();
+	tetris_connect(net_client, host, port);
 
-	tetris_listen(player);
-	tetris_list();
-	sleep(1);
-	tetris_disconnect();
+	tetris_listen(net_client);
+
+	StringArray *names = tetris_list(net_client);
+	for (int i = 0; i < names->length; i++) {
+		fprintf(stderr, "%s\n", get_string_array(names, i));
+	}
+
+	// connect to the server
+
+	tetris_disconnect(net_client);
 	return EXIT_SUCCESS;
 }
 
@@ -66,24 +71,31 @@ int run_online(char *host, int port, char *username, char *opponent) {
 	player_init();
 
 	// connect to the server
+	NetClient *net_client = net_client_init(host, port);
+	tetris_connect(net_client, host, port);
+
+	// create our player
 	Player *player = player_create(0, username);
-	player->fd = tetris_connect(host, port);
-	tetris_register(username);
-	tetris_opponent(opponent);
+	player->fd = net_client->fd;
+	net_client->player = player;
+
+	// register our player
+	tetris_register(net_client, username);
+	tetris_opponent(net_client, opponent);
 
 	// create names array
 	char *names[2];
 	names[0] = username;
 	names[1] = opponent;
 
-	tetris_listen(player);
+	tetris_listen(net_client);
 
 	// create the renderer and start the input loop
 	render_init(2, names);
-	keyboard_input_loop(tcp_control_set());
+	keyboard_input_loop(tcp_control_set(), net_client);
 	render_close();
 
-	tetris_disconnect();
+	tetris_disconnect(net_client);
 	return EXIT_SUCCESS;
 }
 
