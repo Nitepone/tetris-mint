@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "client_conn.h"
+#include "log.h"
 #include "message.h"
 #include "render.h"
 #include "tetris_game.h"
@@ -28,7 +29,7 @@ static void init_sockaddr(struct sockaddr_in *name, const char *hostname,
 	name->sin_port = htons(port);
 	hostinfo = gethostbyname(hostname);
 	if (hostinfo == NULL) {
-		fprintf(stderr, "Unknown host %s.\n", hostname);
+		fprintf(logging_fp, "Unknown host %s.\n", hostname);
 		exit(EXIT_FAILURE);
 	}
 	name->sin_addr = *(struct in_addr *)hostinfo->h_addr;

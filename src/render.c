@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "log.h"
 #include "render.h"
 #include "tetris_game.h"
 
@@ -176,7 +177,8 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	struct board_display *bd = board_from_name(name);
 
 	if (bd == 0) {
-		printf("render_game_view_data: no board found for name\n");
+		fprintf(logging_fp,
+		        "render_game_view_data: no board found for name\n");
 		return;
 	}
 

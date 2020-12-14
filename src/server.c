@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "message.h"
 #include "player.h"
 
@@ -150,6 +151,9 @@ void usage() {
 int main(int argc, char *argv[]) {
 	char host[128] = "127.0.0.1";
 	char port[6] = "5555";
+
+	// set the logger file pointer to /dev/null
+	logging_set_fp(fopen("/dev/null", "w"));
 
 	// Parse command line flags. The optstring passed to getopt has a
 	// preceding colon to tell getopt that missing flag values should be

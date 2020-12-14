@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "client_conn.h"
+#include "log.h"
 #include "offline.h"
 #include "player.h"
 #include "render.h"
@@ -103,6 +104,9 @@ int main(int argc, char *argv[]) {
 
 	int should_run_offline = 0;
 	int list_players = 0;
+
+	// set the logger file pointer to /dev/null
+	logging_set_fp(fopen("/dev/null", "w"));
 
 	// Parse command line flags. The optstring passed to getopt has a
 	// preceding colon to tell getopt that missing flag values should be
