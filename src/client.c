@@ -54,10 +54,8 @@ int run_list_online_players(char *host, int port) {
 
 	StringArray *names = tetris_list(net_client);
 	for (int i = 0; i < names->length; i++) {
-		fprintf(stderr, "%s\n", get_string_array(names, i));
+		fprintf(stderr, "%s\n", string_array_get_item(names, i));
 	}
-
-	// connect to the server
 
 	tetris_disconnect(net_client);
 	return EXIT_SUCCESS;

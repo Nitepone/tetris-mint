@@ -48,12 +48,12 @@ struct st_player *get_player_from_fd(int fd) {
 }
 
 StringArray *player_names() {
-	StringArray *arr = create_string_array(player_list->length);
+	StringArray *arr = string_array_create(player_list->length);
 
 	for (int i = 0; i < player_list->length; i++) {
 		Player *player =
 		    (struct st_player *)(list_get(player_list, i)->target);
-		set_string_array(arr, i, player->name);
+		string_array_set_item(arr, i, player->name);
 	}
 
 	return arr;

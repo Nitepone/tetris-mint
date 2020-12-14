@@ -21,24 +21,46 @@ void shift_blob(Blob *blob, int shift) {
 	blob->length = blob->length + shift;
 }
 
-StringArray *create_string_array(int length) {
+StringArray *string_array_create(int length) {
 	StringArray *arr = malloc(sizeof(StringArray));
 	arr->length = length;
-	arr->strings = malloc(sizeof(char *) * length);
+	arr->strings = calloc(sizeof(char *), length);
 	return arr;
 }
 
-void set_string_array(StringArray *arr, int index, char *value) {
+void string_array_resize(StringArray *arr, int new_length) {
+	//
+	// The beauty of this implementation is that only the pointers need to
+	// be copied. The underlying strings allocations remain the same!
+	//
+	int old_length = arr->length;
+	char **old_strings = arr->strings;
+
+	// length_to_copy is the number of strings that can be copied from the
+	// old array to the new array. In practice, this is the smaller of the
+	// old length and the new length.
+	int length_to_copy = new_length < old_length ? new_length : old_length;
+
+	// build the new string array
+	arr->length = new_length;
+	arr->strings = calloc(sizeof(char *), new_length);
+	memcpy(arr->strings, old_strings, sizeof(char *) * length_to_copy);
+
+	// free the old array of pointers
+	free(old_strings);
+};
+
+void string_array_set_item(StringArray *arr, int index, char *value) {
 	int len = strlen(value);
 	arr->strings[index] = malloc(len + 1);
 	memcpy(arr->strings[index], value, len);
 }
 
-char *get_string_array(StringArray *arr, int index) {
+char *string_array_get_item(StringArray *arr, int index) {
 	return arr->strings[index];
 }
 
-Blob *serialize_string_array(StringArray *arr) {
+Blob *string_array_serialize(StringArray *arr) {
 	int message_size = 128;
 	int message_index = 0;
 	Blob *blob = create_blob(message_size);
@@ -62,21 +84,21 @@ Blob *serialize_string_array(StringArray *arr) {
 	return blob;
 }
 
-StringArray *deserialize_string_array(Blob *blob) {
+StringArray *string_array_deserialize(Blob *blob) {
 	int length = *((int *)blob->bytes);
-	StringArray *arr = create_string_array(length);
+	StringArray *arr = string_array_create(length);
 
 	int message_index = 4;
 
 	for (int i = 0; i < length; i++) {
 		int string_length = strlen(blob->bytes + message_index);
-		set_string_array(arr, i, blob->bytes + message_index);
+		string_array_set_item(arr, i, blob->bytes + message_index);
 		message_index += string_length + 1;
 	}
 	return arr;
 }
 
-void destroy_string_array(StringArray *arr) {
+void string_array_destroy(StringArray *arr) {
 	// free all the strings
 	for (int i = 0; i < arr->length; i++)
 		if (arr->strings[i])

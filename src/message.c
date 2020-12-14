@@ -39,7 +39,7 @@ int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id) {
  */
 int send_online_users(int filedes, int request_id) {
 	StringArray *arr = player_names();
-	Blob *blob = serialize_string_array(arr);
+	Blob *blob = string_array_serialize(arr);
 	shift_blob(blob, 1);
 	blob->bytes[0] = MSG_TYPE_LIST_RESPONSE;
 	printf("send_online_users: message blob length: %d\n", blob->length);

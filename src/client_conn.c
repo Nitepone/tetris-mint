@@ -95,7 +95,7 @@ StringArray *tetris_list(NetClient *net_client) {
 	Blob *body = malloc(sizeof(Blob));
 	body->bytes = request->cursor + 1;
 	body->length = header->content_length;
-	return deserialize_string_array(body);
+	return string_array_deserialize(body);
 }
 
 /**
