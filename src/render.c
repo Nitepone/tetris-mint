@@ -1,23 +1,38 @@
+#include <asm/ioctls.h>
 #include <locale.h>
 #include <ncurses.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <time.h>
 
 #include "render.h"
 #include "tetris_game.h"
 
+// width of the windows used to show the points, lines, next block, and hold
+// block
+#define SECONDARY_WIN_WIDTH 8
 #define CELL_WIDTH 2
 #define BOARD_CH_WIDTH (CELL_WIDTH * BOARD_WIDTH)
 
 struct board_display {
 	char *name;
 	WINDOW *tetris_window;
-	WINDOW *message_window;
-	WINDOW *top_window;
+	WINDOW *next_block_window;
+	WINDOW *hold_block_window;
+	WINDOW *points_window;
+	WINDOW *lines_window;
 };
 
 static struct board_display *boards;
 static int nboards;
+// flag used to indicate that the window layout needs to be refreshed
+static int dirty;
+// flags used to indicate the the root window is too small to render the
+// contents
+static int too_narrow = 0;
+static int too_short = 0;
 
 static struct board_display *board_from_name(char *name) {
 	for (int i = 0; i < nboards; i++)
@@ -25,6 +40,112 @@ static struct board_display *board_from_name(char *name) {
 			return boards + i;
 	return 0;
 }
+
+/**
+ * recalculate the positions of all tetris windows, etc
+ */
+void render_refresh_layout(void) { dirty = true; }
+
+static void set_window(WINDOW **win, int height, int width, int starty,
+                       int startx) {
+	if (!*win) {
+		*win = create_newwin(height, width, starty, startx);
+	} else if (wresize(*win, height, width) != OK ||
+	           mvwin(*win, starty, startx) != OK)
+		exit(EXIT_FAILURE);
+}
+
+void _render_refresh_layout(void) {
+	//
+	// There are a number of patterns to get ncurses to update the root
+	// window size.
+	// 1. Out of the box, ncurses should respond correctly to SIGWINCH and
+	// upgetch KEY_RESIZE so that we can respond to
+	//    the event.
+	// 2. Calling endwin() followed by refresh() will force ncurses to
+	// update. You would do this in a custom SIGWINCH
+	//    handler.
+	// 3. Calling resize_term directly with the output from ioctl
+	//
+	// In my testing, I found that approaches #1 and #2 were dropping the
+	// next user keypress. Until we find a good solution to that, option #3
+	// is working nicely. :)
+	//
+	struct winsize ws;
+	ioctl(0, TIOCGWINSZ, &ws);
+	// Here, we call the "inner" resize_term function rather than the
+	// *recommended* "outer" resizeterm function. This is because in my
+	// testing, resizeterm was causing the next user keypress to get
+	// dropped, which is super annoying. There is probably another, better
+	// solution, but this works fine. :)
+	resize_term(ws.ws_row, ws.ws_col);
+
+	clear();
+
+	int board_min_y = (LINES - BOARD_HEIGHT) / 2;
+	if (board_min_y < 1)
+		board_min_y = 1;
+	int panel_width = COLS / nboards;
+
+	// check that the terminal is large enough to render everything
+	too_narrow = panel_width < BOARD_CH_WIDTH + 10 ? 1 : 0;
+	too_short = LINES < BOARD_HEIGHT + 2 ? 1 : 0;
+	if (too_narrow || too_short) {
+		refresh();
+		return;
+	}
+
+	for (int i = 0; i < nboards; i++) {
+		int panel_lowx = panel_width * i;
+		int window_lowx =
+		    panel_lowx +
+		    (panel_width - BOARD_CH_WIDTH - SECONDARY_WIN_WIDTH) / 2;
+
+		set_window(&boards[i].tetris_window, BOARD_HEIGHT + 2,
+		           BOARD_CH_WIDTH + 2, board_min_y - 1,
+		           window_lowx - 1);
+
+		int secondary_start_x = window_lowx + BOARD_CH_WIDTH + 1;
+
+		set_window(&boards[i].next_block_window, 6, SECONDARY_WIN_WIDTH,
+		           board_min_y - 1, secondary_start_x);
+
+		set_window(&boards[i].hold_block_window, 6, SECONDARY_WIN_WIDTH,
+		           board_min_y + 5, secondary_start_x);
+
+		set_window(&boards[i].points_window, 4, SECONDARY_WIN_WIDTH,
+		           board_min_y + 11, secondary_start_x);
+
+		set_window(&boards[i].lines_window, 4, SECONDARY_WIN_WIDTH,
+		           board_min_y + 15, secondary_start_x);
+
+		werase(boards[i].points_window);
+		werase(boards[i].lines_window);
+
+		// wnoutrefresh updates the virtual window, but not the
+		// "physical window." The "physical window" is updated by the
+		// doupdate() call below.
+		wnoutrefresh(boards[i].next_block_window);
+		wnoutrefresh(boards[i].hold_block_window);
+		wnoutrefresh(boards[i].points_window);
+		wnoutrefresh(boards[i].lines_window);
+		wnoutrefresh(boards[i].tetris_window);
+	}
+
+	wnoutrefresh(stdscr);
+	doupdate();
+	dirty = false;
+}
+
+/**
+ * This signal handler is just slightly different than the one that comes with
+ * ncurses.
+ * - ncurses will override the ioctl window size with the environment variables
+ * LINES or COLUMNS if they are set (See man resizeterm).
+ * - ncurses will ungetch KEY_RESIZE afterwards, which this will not
+ * @param sig
+ */
+static void render_handle_sig(int sig) { dirty = true; }
 
 /**
  * initialize the renderer to display n games for players given by the names in
@@ -65,30 +186,17 @@ void render_init(int n, char *names[]) {
 	init_pair(6, COLOR_MAGENTA, COLOR_MAGENTA);
 	init_pair(7, COLOR_CYAN, COLOR_CYAN);
 
-	int starty = (LINES - BOARD_HEIGHT) / 2;
-
 	// set the static variable for this module
 	nboards = n;
 
-	// allocate the boards array
-	boards = malloc(n * sizeof(struct board_display));
-
-	int panel_width = COLS / n;
-	for (int i = 0; i < n; i++) {
-		int panel_lowx = panel_width * i;
-		int window_lowx =
-		    panel_lowx + (panel_width - BOARD_CH_WIDTH) / 2;
+	// allocate the boards array and set the names
+	boards = calloc(sizeof(struct board_display), nboards);
+	for (int i = 0; i < nboards; i++)
 		boards[i].name = names[i];
-		boards[i].tetris_window =
-		    create_newwin(BOARD_HEIGHT + 2, BOARD_CH_WIDTH + 2,
-		                  starty - 1, window_lowx - 1);
-		boards[i].message_window = create_newwin(
-		    3, panel_width, starty + BOARD_HEIGHT + 2, panel_lowx);
-		boards[i].top_window = create_newwin(
-		    5, BOARD_CH_WIDTH + 2, starty - 7, window_lowx - 1);
-	}
 
-	refresh();
+	_render_refresh_layout();
+
+	signal(SIGWINCH, render_handle_sig);
 }
 
 void render_close(void) {
@@ -171,6 +279,22 @@ static void render_tetris_piece(WINDOW *win, enum block_type piece,
 }
 
 void render_game_view_data(char *name, struct game_view_data *view) {
+	if (dirty)
+		_render_refresh_layout();
+
+	if (too_narrow) {
+		print_centered(stdscr, 1, "Terminal too narrow!");
+		print_centered(stdscr, 2, "Resize to play.");
+		refresh();
+		return;
+	}
+	if (too_short) {
+		print_centered(stdscr, 1,
+		               "Terminal too short! Resize to play.");
+		refresh();
+		return;
+	}
+
 	int(*board)[BOARD_WIDTH] = view->board;
 	// figure out which board is getting rendered
 	struct board_display *bd = board_from_name(name);
@@ -190,36 +314,74 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 			            board[r][c]);
 
 	box(tetris_window, 0, 0);
-	wrefresh(tetris_window);
+	wnoutrefresh(tetris_window);
 
-	char status[100];
-	sprintf(status, "Points: %d   Lines: %d", view->points,
-	        view->lines_cleared);
+	// pre-render the next block window
+	fill_window(bd->next_block_window, COLOR_PAIR(0));
+	mvwprintw(bd->next_block_window, 1, 2, "NEXT");
+	render_tetris_piece(bd->next_block_window, view->next_block, right,
+	                    (struct position){1, 2});
+	box(bd->next_block_window, 0, 0);
+	wnoutrefresh(bd->next_block_window);
 
-	// print the player's score beneath the board
-	mvwprintw(bd->message_window, 1, 1, status);
-	box(bd->message_window, 0, 0);
-	wrefresh(bd->message_window);
+	// pre-render the hold block window
+	fill_window(bd->hold_block_window, COLOR_PAIR(0));
+	mvwprintw(bd->hold_block_window, 1, 2, "HOLD");
+	render_tetris_piece(bd->hold_block_window, view->hold_block, right,
+	                    (struct position){1, 2});
+	box(bd->hold_block_window, 0, 0);
+	wnoutrefresh(bd->hold_block_window);
 
-	// print the next piece and swap piece in the top window
-	fill_window(bd->top_window, COLOR_PAIR(0));
-	render_tetris_piece(bd->top_window, view->next_block, right,
-	                    (struct position){1, 1});
-	render_tetris_piece(bd->top_window, view->hold_block, left,
-	                    (struct position){BOARD_WIDTH - 2, 1});
-	box(bd->top_window, 0, 0);
-	wrefresh(bd->top_window);
+	// pre-render the points window
+	char output_buffer[64];
+	sprintf(output_buffer, "POINTS\n %d", view->points);
+	mvwprintw(bd->points_window, 1, 1, output_buffer);
+	box(bd->points_window, 0, 0);
+	wnoutrefresh(bd->points_window);
+
+	// pre-render the lines window
+	sprintf(output_buffer, "LINES\n %d", view->lines_cleared);
+	mvwprintw(bd->lines_window, 1, 1, output_buffer);
+	box(bd->lines_window, 0, 0);
+	wnoutrefresh(bd->lines_window);
+
+	wnoutrefresh(stdscr);
+	// do update flushes all the window changes by wnoutrefresh at once
+	doupdate();
 }
 
-///
-// Warning: make sure text is properly null-terminated!
-///
-void render_message(char *text) {
-	// center y position between bottom of board and bottom of terminal
-	int y = (3 * LINES + BOARD_HEIGHT) / 4;
+/**
+ * Make sure text is null terminated! Also, this function does not function
+ * as expected if text contains non-printing characters.
+ */
+int print_centered(WINDOW *w, int y, char *text) {
+	int max_y, max_x;
+	getmaxyx(w, max_y, max_x);
+
+	if (y > max_y) {
+		return EXIT_FAILURE;
+	}
+
+	// if the text is too long, make a copy and null-terminate it
+	char *output_buffer = text;
+	int len = strnlen(text, max_x);
+	if (len == max_x) {
+		output_buffer = malloc(len + 1);
+		memcpy(output_buffer, text, len);
+		output_buffer[len] = 0;
+	}
+
 	// center x position
-	int x = (COLS - strlen(text)) / 2;
-	mvprintw(y, x, text);
+	int x = (max_x - len) / 2;
+
+	mvwprintw(w, y, x, output_buffer);
+
+	// free output_buffer if we made a copy of text
+	if (output_buffer != text) {
+		free(output_buffer);
+	}
+
+	return EXIT_SUCCESS;
 }
 
 WINDOW

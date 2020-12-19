@@ -11,10 +11,12 @@ void render_close(void);
 
 void render_game_view_data(char *board_name, struct game_view_data *view);
 
-void render_message(char *text);
+int print_centered(WINDOW *w, int y, char *text);
 
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 
 void destroy_win(WINDOW *local_win);
+
+void render_refresh_layout(void);
 
 #endif
