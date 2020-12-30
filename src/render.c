@@ -147,6 +147,44 @@ void _render_refresh_layout(void) {
  */
 static void render_handle_sig(int sig) { dirty = true; }
 
+void (*cached_handler)(int);
+
+/**
+ * saves the current handler for signal to handler
+ * @param signal
+ * @param handler
+ */
+static void get_current_handler(int signal, void (**handler)(int)) {
+	struct sigaction query_action;
+	if (sigaction(signal, NULL, &query_action) < 0) {
+		// -1 indicates an error
+		*handler = NULL;
+	} else if (query_action.sa_handler == SIG_DFL) {
+		// default handler
+		*handler = NULL;
+	} else if (query_action.sa_handler == SIG_IGN) {
+		// signal ignored
+		*handler = NULL;
+	} else {
+		// a custom handler is defined and in effect
+		*handler = query_action.sa_handler;
+	}
+}
+
+/**
+ * lightweight wrapper around the ncurses signal handler that sets the render
+ * state to dirty
+ *
+ * Without this, continuing after a SIGTSTP will fail in messy ways, because
+ * the separate tetris game engine thread will call render methods before the
+ * render is set up
+ */
+static void render_handle_sigtstp(int sig) {
+	dirty = true;
+	if (cached_handler)
+		cached_handler(sig);
+}
+
 /**
  * initialize the renderer to display n games for players given by the names in
  * the array names
@@ -197,6 +235,12 @@ void render_init(int n, char *names[]) {
 	_render_refresh_layout();
 
 	signal(SIGWINCH, render_handle_sig);
+
+	// cache the ncurses SIGTSTP handler so that we can call it right after
+	// our stuff
+	get_current_handler(SIGTSTP, &cached_handler);
+	// set our handler for SIGTSTP
+	signal(SIGTSTP, render_handle_sigtstp);
 }
 
 void render_close(void) {
