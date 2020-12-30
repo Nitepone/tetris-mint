@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "log.h"
 #include "message.h"
 #include "player.h"
@@ -47,11 +48,32 @@ int make_socket(char *host, uint16_t port) {
 	return sock;
 }
 
+static void tell_party_that_the_game_started(TetrisParty *party) {
+	int i;
+	Player *player;
+	List *players = ttetris_party_get_players(party);
+
+	StringArray *party_members =
+	    string_array_create(players->length, PLAYER_NAME_MAX_CHARS);
+	for (i = 0; i < players->length; i++)
+		string_array_set_item(party_members, i,
+		                      ((Player *)list_get(players, i))->name);
+	Blob *party_members_blob = string_array_serialize(party_members);
+
+	for (i = 0; i < players->length; i++) {
+		player = (Player *)list_get(players, i);
+		if (player->fd)
+			message_blob(player->fd, party_members_blob, 0,
+			             MSG_TYPE_GAME_STARTED);
+	}
+}
+
 /**
  * Returns -1 if EOF is received or 0 otherwise.
  */
 int read_from_client(int filedes) {
 	char buffer[MAXMSG];
+	Blob *blob;
 
 	// remember that more than one TCP packet may be read by this command
 	int nbytes = read(filedes, buffer, MAXMSG);
@@ -83,25 +105,35 @@ int read_from_client(int filedes) {
 
 	while (cursor < end) {
 		MessageHeader *header = (MessageHeader *)buffer;
-		fprintf(stderr, "read_from_client: id=%d n_bytes=%d\n",
-		        header->request_id, header->content_length);
+		fprintf(stderr,
+		        "read_from_client: magic=0x%x id=%d n_bytes=%d "
+		        "msg_type=%s\n",
+		        header->magic_number, header->request_id,
+		        header->content_length,
+		        message_type_to_str(header->message_type));
 
 		// increment the cursor to the start of the message body
 		cursor += sizeof(MessageHeader);
-		fprintf(stderr, "message body: %s\n", cursor);
 
-		switch (cursor[0]) {
+		switch (header->message_type) {
+		case MSG_TYPE_START_GAME:
+			if (player->party == 0)
+				break;
+			ttetris_party_start(player->party);
+			tell_party_that_the_game_started(player->party);
+			break;
 		case MSG_TYPE_REGISTER:
-			sscanf(cursor + 1, "%15s", name);
+			sscanf(cursor, "%15s", name);
 			player = player_create(filedes, name);
-			start_game(player);
 			player->render = send_player;
+			message_nbytes(filedes, NULL, 0, header->request_id,
+			               MSG_TYPE_REGISTER_SUCCESS);
 			break;
 		case MSG_TYPE_ROTATE:
-			rotate_block(cursor[1], player->contents);
+			rotate_block(cursor[0], player->contents);
 			break;
 		case MSG_TYPE_TRANSLATE:
-			translate_block(cursor[1], player->contents);
+			translate_block(cursor[0], player->contents);
 			break;
 		case MSG_TYPE_LOWER:
 			lower_block(0, player->contents);
@@ -113,10 +145,33 @@ int read_from_client(int filedes) {
 			swap_hold_block(player->contents);
 			break;
 		case MSG_TYPE_OPPONENT:
-			fprintf(stderr, "Opponent: %s\n", cursor + 1);
-			opponent = player_get_by_name(cursor + 1);
-			if (opponent)
-				player_set_opponent(player, opponent);
+			blob = malloc(sizeof(blob));
+			blob->bytes = cursor;
+			blob->length = header->content_length;
+			StringArray *opponent_names =
+			    string_array_deserialize(blob);
+
+			TetrisParty *party = ttetris_party_create();
+			ttetris_party_player_add(party, player);
+
+			for (int i = 0; i < opponent_names->length; i++) {
+
+				opponent = player_get_by_name(
+				    string_array_get_item(opponent_names, i));
+
+				if (!opponent) {
+					fprintf(logging_fp,
+					        "read_from_client: Could "
+					        "not find opponent\n");
+					break;
+				}
+				fprintf(stderr,
+				        "read_from_client: Adding opponent "
+				        "number %d to party: %s\n",
+				        i, opponent->name);
+				ttetris_party_player_add(party, opponent);
+			}
+
 			break;
 		case MSG_TYPE_LIST:
 			send_online_users(filedes, header->request_id);
@@ -124,21 +179,29 @@ int read_from_client(int filedes) {
 		default:
 			fprintf(stderr,
 			        "read_from_client:_received unrecognized "
-			        "message with starting byte 0x%x",
-			        cursor[0]);
+			        "message with message type 0x%x",
+			        header->message_type);
 		}
 
 		// increment the cursor past the message body end
 		cursor += header->content_length;
 	}
 
-	// send the game view data to the player
-	if (player)
-		send_player(player->fd, player);
-
-	// send the game view data to the player's opponent
-	if (player && player->opponent)
-		send_player(player->opponent->fd, player);
+	if (player) {
+		// if the player has a party, send the board to all players
+		if (player->party) {
+			List *party_members =
+			    ttetris_party_get_players(player->party);
+			for (int i = 0; i < party_members->length; i++)
+				send_player(
+				    ((Player *)list_get(party_members, i))->fd,
+				    player);
+		}
+		// otherwise, just send the board to the player
+		else {
+			send_player(player->fd, player);
+		}
+	}
 
 	return 0;
 }

@@ -15,7 +15,7 @@ struct st_list {
 
 List *list_create();
 
-struct st_node *list_get(struct st_list *list, int index);
+void *list_get(struct st_list *list, int index);
 
 struct st_node *list_search(struct st_list *list, int (*match)(void *));
 

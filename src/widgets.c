@@ -1,3 +1,6 @@
+#include "widgets.h"
+#include "generic.h"
+#include "player.h"
 #include <form.h>
 #include <menu.h>
 #include <stdio.h>
@@ -19,7 +22,7 @@ static void strip(char *text) {
 	*c = 0;
 }
 
-void ttviz_entry(char *username, char *label) {
+void ttviz_entry(char *username, char *label, int max_length) {
 	int label_len = strlen(label);
 
 	FIELD *field[2];
@@ -72,7 +75,7 @@ void ttviz_entry(char *username, char *label) {
 	// buffer
 	form_driver(my_form, REQ_VALIDATION);
 	char *result = field_buffer(field[0], 0);
-	strcpy(username, result);
+	strncpy(username, result, max_length);
 	// it seems like the form field always has extra spaces, so get rid of
 	// those
 	strip(username);
@@ -86,10 +89,25 @@ void ttviz_entry(char *username, char *label) {
 	endwin();
 }
 
+struct ttetris_widget_selection {
+	/* options is a reference to the options provided by the caller */
+	char **options;
+	int num_options;
+	int num_selected;
+	int *indices;
+};
+
+void selection_destroy(WidgetSelection *selection) {
+	free(selection->indices);
+	free(selection);
+}
+
 /**
  * Select from a given number of options
  */
-int ttviz_select(char **options, int num_options, char *desc) {
+struct ttetris_widget_selection *ttviz_select(char **options, int num_options,
+                                              char *desc,
+                                              int is_single_selection) {
 	int win_width = 20;
 	ITEM **my_items;
 	int c, i;
@@ -112,8 +130,18 @@ int ttviz_select(char **options, int num_options, char *desc) {
 	WINDOW *child_win = derwin(my_menu_win, 6, win_width - 2, 3, 1);
 	set_menu_sub(my_menu, child_win);
 
-	/* Set menu mark to the string " * " */
-	set_menu_mark(my_menu, " * ");
+	// Set the menu mark. This is shown next to BOTH selected items and the
+	// current item, which is kind of confusing. Make sure this is at least
+	// two characters, which will slightly distinguish selected items from
+	// the current item.
+	// TODO Find a better multi-select menu.
+	set_menu_mark(my_menu, "---");
+
+	if (!is_single_selection) {
+		mvprintw(1, 1, "Use <SPACE> to select or unselect an item");
+		mvprintw(2, 1, "Use <ENTER> to confirm selection");
+		menu_opts_off(my_menu, O_ONEVALUE);
+	}
 
 	/* Print a border around the main window and print a title */
 	box(my_menu_win, 0, 0);
@@ -136,12 +164,41 @@ int ttviz_select(char **options, int num_options, char *desc) {
 		case KEY_UP:
 			menu_driver(my_menu, REQ_UP_ITEM);
 			break;
+		case ' ':
+			// space is not bound for single selection menus
+			if (!is_single_selection)
+				menu_driver(my_menu, REQ_TOGGLE_ITEM);
+			break;
 		}
 		wrefresh(my_menu_win);
 	}
 
-	ITEM *cur = current_item(my_menu);
-	int result = item_index(cur);
+	WidgetSelection *w_selection = malloc(sizeof(WidgetSelection));
+	w_selection->options = options;
+	w_selection->num_options = num_options;
+
+	ITEM **items = menu_items(my_menu);
+
+	if (is_single_selection) {
+		ITEM *cur = current_item(my_menu);
+		w_selection->num_selected = 1;
+		w_selection->indices = malloc(sizeof(int));
+		w_selection->indices[0] = item_index(cur);
+	} else {
+		// count the number of items
+		w_selection->num_selected = 0;
+		for (i = 0; i < item_count(my_menu); ++i)
+			if (item_value(items[i]) == TRUE)
+				w_selection->num_selected += 1;
+
+		// store the selected indices
+		w_selection->indices =
+		    calloc(sizeof(int), w_selection->num_selected);
+		int j = 0;
+		for (i = 0; i < item_count(my_menu); ++i)
+			if (item_value(items[i]) == TRUE)
+				w_selection->indices[j++] = i;
+	}
 
 	/* Unpost and free all the memory taken up */
 	unpost_menu(my_menu);
@@ -161,7 +218,22 @@ int ttviz_select(char **options, int num_options, char *desc) {
 
 	free(my_items);
 
-	return result;
+	return w_selection;
+}
+
+int selection_to_index(WidgetSelection *selection) {
+	return selection->indices[0];
+}
+
+StringArray *selection_to_string_array(WidgetSelection *selection) {
+	StringArray *arr =
+	    string_array_create(selection->num_selected, PLAYER_NAME_MAX_CHARS);
+
+	for (int i = 0; i < selection->num_selected; ++i)
+		string_array_set_item(arr, selection->indices[i],
+		                      selection->options[i]);
+
+	return arr;
 }
 
 void print_in_middle(WINDOW *win, int starty, int startx, int width,

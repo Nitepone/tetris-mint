@@ -18,13 +18,13 @@ static struct st_node *list_end_node(struct st_list *list) {
 	return target;
 }
 
-struct st_node *list_get(struct st_list *list, int index) {
+void *list_get(struct st_list *list, int index) {
 	if (index >= list->length)
 		return 0;
 	struct st_node *node = list->head;
 	for (int i = 0; i < index; i++)
 		node = node->next;
-	return node;
+	return node->target;
 }
 
 struct st_node *list_search(struct st_list *list, int (*match)(void *)) {

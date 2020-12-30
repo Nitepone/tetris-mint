@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "client_conn.h"
+#include "event.h"
 #include "log.h"
 #include "offline.h"
 #include "player.h"
@@ -33,10 +34,12 @@ int run_offline() {
 	char *names[1];
 	names[0] = "You";
 	Player *player = player_create(0, names[0]);
-	start_game(player);
+	player_game_start(player);
 
 	render_init(1, names);
 	keyboard_input_loop(offline_control_set(player), NULL);
+
+	player_game_stop(player);
 	render_close();
 	return EXIT_SUCCESS;
 }
@@ -46,7 +49,10 @@ int run_offline() {
  */
 int run_list_online_players(char *host, int port) {
 	NetClient *net_client = net_client_init();
-	tetris_connect(net_client, host, port);
+	if (tetris_connect(net_client, host, port) == EXIT_FAILURE) {
+		perror("run_list_online_players");
+		return EXIT_FAILURE;
+	}
 
 	tetris_listen(net_client);
 
@@ -59,23 +65,51 @@ int run_list_online_players(char *host, int port) {
 	return EXIT_SUCCESS;
 }
 
+void *player_lobby(void *_net_client) {
+	NetClient *net_client = (NetClient *)_net_client;
+	// get the list of possible opponents
+	StringArray *online_usernames = tetris_list(net_client);
+	while (online_usernames->length == 0) {
+		sleep(2);
+		online_usernames = tetris_list(net_client);
+	};
+
+	// null terminate the string array
+	string_array_resize(online_usernames, online_usernames->length + 1);
+
+	WidgetSelection *selection = ttviz_select(
+	    online_usernames->strings, online_usernames->length, "Opponent", 0);
+	StringArray *opponents = selection_to_string_array(selection);
+	tetris_opponent(net_client, opponents);
+
+	tetris_tell_server_to_start(net_client);
+
+	// free up resources
+	string_array_destroy(online_usernames);
+	selection_destroy(selection);
+
+	return NULL;
+}
+
 /**
  * run an online game of tetris
  */
-int run_online(char *host, int port, char *username, char *opponent) {
+int run_online(char *host, int port) {
 	// initialize the player list
 	player_init();
 
-	// initialize the renderer
-	// THIS MUST BE DONE BEFORE REGISTERING WITH THE SERVER
-	char *names[2];
-	names[0] = username;
-	names[1] = opponent;
-	render_init(2, names);
-
 	// connect to the server
 	NetClient *net_client = net_client_init(host, port);
-	tetris_connect(net_client, host, port);
+	if (tetris_connect(net_client, host, port) == EXIT_FAILURE) {
+		// print the error at the top-left of the terminal using curses
+		mvprintw(0, 0, strerror(errno));
+		return EXIT_FAILURE;
+	}
+	tetris_listen(net_client);
+
+	// prompt for a username
+	char username[32];
+	ttviz_entry(username, "Enter username: ", PLAYER_NAME_MAX_CHARS);
 
 	// create our player
 	Player *player = player_create(0, username);
@@ -83,10 +117,23 @@ int run_online(char *host, int port, char *username, char *opponent) {
 	net_client->player = player;
 
 	// register our player
-	tetris_register(net_client, username);
-	tetris_opponent(net_client, opponent);
+	NetRequest *request = tetris_register(net_client, username);
+	ttetris_net_request_block_for_response(request);
 
-	tetris_listen(net_client);
+	fprintf(
+	    stderr,
+	    "Registered successfully! Fetching online players from server...");
+
+	// get the list of possible opponents
+
+	pthread_t _thread;
+	pthread_create(&_thread, NULL, player_lobby, net_client);
+
+	// block until we hear from the server that the game has started
+	ttetris_event_block_for_completion(player->game_start_event);
+
+	// cancel the lobby thread if it is still running
+	pthread_cancel(_thread);
 
 	// create the renderer and start the input loop
 	keyboard_input_loop(tcp_control_set(), net_client);
@@ -97,12 +144,53 @@ int run_online(char *host, int port, char *username, char *opponent) {
 	return EXIT_SUCCESS;
 }
 
+/**
+ * Show the main menu for gameplay selection
+ */
+int main_menu(char *host, int port) {
+	WidgetSelection *selection;
+	int selected_choice;
+	char *choices[] = {
+	    "Single", "Multi", "Controls", "Exit", (char *)NULL,
+	};
+
+	while (1) {
+		// TODO We shouldn't need to be calling all this setup
+		// everytime. The main change is that the init_pair calls are
+		// different for the gameplay vs. the menu
+		initscr();
+		start_color();
+		cbreak();
+		noecho();
+		keypad(stdscr, TRUE);
+		init_pair(1, COLOR_RED, COLOR_BLACK);
+		selection = ttviz_select(choices, 4, "Gameplay Mode", 1);
+		selected_choice = selection_to_index(selection);
+
+		switch (selected_choice) {
+		case 0:
+			run_offline();
+			break;
+		case 1:
+			run_online(host, port);
+			break;
+		case 2:
+			break;
+		case 3:
+			return EXIT_SUCCESS;
+		default:
+			perror("Unexpected state");
+			return EXIT_FAILURE;
+		}
+
+		// TODO Cleanup
+	}
+}
+
 int main(int argc, char *argv[]) {
-	char username[32] = "Anonymous";
 	char host[128] = "127.0.0.1";
 	char port[6] = "5555";
 
-	int should_run_offline = 0;
 	int list_players = 0;
 
 	// set the logger file pointer to /dev/null
@@ -113,13 +201,10 @@ int main(int argc, char *argv[]) {
 	// treated differently than unknown flags. The proceding colons indicate
 	// that flags must have a value.
 	int opt;
-	while ((opt = getopt(argc, argv, ":hsla:p:")) != -1) {
+	while ((opt = getopt(argc, argv, ":hla:p:")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
-			break;
-		case 's':
-			should_run_offline = 1;
 			break;
 		case 'a':
 			strncpy(host, optarg, 127);
@@ -151,50 +236,10 @@ int main(int argc, char *argv[]) {
 	if (list_players)
 		return run_list_online_players(host, numeric_port);
 
-	initscr();
-	start_color();
-	cbreak();
-	noecho();
-	keypad(stdscr, TRUE);
-	init_pair(1, COLOR_RED, COLOR_BLACK);
+	int exit_code = main_menu(host, numeric_port);
 
-	char *choices[] = {
-	    "Single",
-	    "Multi",
-	    "Exit",
-	    (char *)NULL,
-	};
-	int result = ttviz_select(choices, 4, "Gameplay Mode");
+	// make sure terminal is functional when we exit
+	endwin();
 
-	// exit chosen
-	if (result == 2) {
-		printf("Goodbye!\n");
-		exit(0);
-	}
-
-	// single player mode chosen
-	if (should_run_offline || result == 0) {
-		return run_offline();
-	}
-
-	ttviz_entry(username, "Enter username: ");
-
-	// get the list of opponents
-	NetClient *net_client = net_client_init();
-	tetris_connect(net_client, host, numeric_port);
-	tetris_listen(net_client);
-	StringArray *names = tetris_list(net_client);
-	tetris_disconnect(net_client);
-
-	char *opponent = "";
-	if (names->length > 0) {
-		// null terminate the string array
-		string_array_resize(names, names->length + 1);
-
-		int opponent_index =
-		    ttviz_select(names->strings, names->length, "Opponent");
-		opponent = string_array_get_item(names, opponent_index);
-	}
-
-	return run_online(host, numeric_port, username, opponent);
+	return exit_code;
 }

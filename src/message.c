@@ -4,27 +4,70 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "message.h"
 #include "player.h"
 #include "tetris_game.h"
 
-/**
- * Write n bytes to socket and return EXIT_SUCCESS or EXIT_FAILURE
- */
-int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id) {
-	int payload_bytes = sizeof(MessageHeader) + nbytes;
+char *message_type_to_str(msg_type_t msg_type) {
+	switch (msg_type) {
+	case MSG_TYPE_UNKNOWN:
+		return "UNKNOWN";
+	case MSG_TYPE_REGISTER:
+		return "REGISTER";
+	case MSG_TYPE_REGISTER_SUCCESS:
+		return "REGISTER_SUCCESS";
+	case MSG_TYPE_OPPONENT:
+		return "OPPONENT";
+	case MSG_TYPE_ROTATE:
+		return "ROTATE";
+	case MSG_TYPE_TRANSLATE:
+		return "TRANSLATE";
+	case MSG_TYPE_LOWER:
+		return "LOWER";
+	case MSG_TYPE_DROP:
+		return "DROP";
+	case MSG_TYPE_SWAP_HOLD:
+		return "SWAP_HOLD";
+	case MSG_TYPE_LIST:
+		return "LIST";
+	case MSG_TYPE_BOARD:
+		return "BOARD";
+	case MSG_TYPE_LIST_RESPONSE:
+		return "LIST_RESPONSE";
+	case MSG_TYPE_START_GAME:
+		return "START_GAME";
+	case MSG_TYPE_GAME_STARTED:
+		return "GAME_STARTED";
+	default:
+		return "UNKNOWN";
+	}
+}
 
-	char payload[payload_bytes];
+int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id,
+                   msg_type_t message_type) {
+	unsigned long payload_bytes = sizeof(MessageHeader) + nbytes;
+	char *payload = calloc(sizeof(char), payload_bytes);
 
 	// write the payload header
 	MessageHeader *header = (MessageHeader *)payload;
+	header->magic_number = MSG_MAGIC_NUMBER;
 	header->content_length = nbytes;
 	header->request_id = request_id;
+	header->message_type = message_type;
 
 	// copy the body into the payload
 	memcpy(payload + sizeof(MessageHeader), bytes, nbytes);
 
 	int bytes_written = write(socket_fd, payload, payload_bytes);
+
+	free(payload);
+
+	fprintf(logging_fp,
+	        "message_nbytes: Wrote %d bytes to file pointer %x, "
+	        "content_length=%d request_id=%d message_type=%s \n",
+	        bytes_written, socket_fd, nbytes, request_id,
+	        message_type_to_str(message_type));
 
 	if (bytes_written < 0) {
 		perror("write");
@@ -34,35 +77,37 @@ int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id) {
 	return EXIT_SUCCESS;
 }
 
+int message_blob(int socket_fd, Blob *blob, int request_id,
+                 msg_type_t message_type) {
+	return message_nbytes(socket_fd, blob->bytes, blob->length, request_id,
+	                      message_type);
+}
+
 /**
  * Send a list of all online users over the given socket.
  */
 int send_online_users(int filedes, int request_id) {
-	StringArray *arr = player_names();
+	StringArray *arr = player_names(1);
 	Blob *blob = string_array_serialize(arr);
-	shift_blob(blob, 1);
-	blob->bytes[0] = MSG_TYPE_LIST_RESPONSE;
-	printf("send_online_users: message blob length: %d\n", blob->length);
-
-	message_nbytes(filedes, blob->bytes, blob->length, request_id);
-
+	message_blob(filedes, blob, request_id, MSG_TYPE_LIST_RESPONSE);
 	return EXIT_SUCCESS;
 }
 
 Blob *serialize_state(Player *player) {
 	// first, render the board into the player view
 	generate_game_view_data(&player->view, player->contents);
-
+	// figure out how big our blob needs to be
+	u_int8_t name_length = strnlen(player->name, PLAYER_NAME_MAX_CHARS);
+	u_int16_t blob_size = sizeof(struct game_view_data) + name_length + 1;
 	// create a blob to contain the message
-	Blob *blob = create_blob(MAXMSG);
-	// first two bytes represent the length of the message
-	// next byte indicates message type
-	blob->bytes[0] = MSG_TYPE_BOARD;
+	Blob *blob = create_blob(blob_size);
 	// next null-terminated bytes are used to store the player name
-	uint8_t name_length = strlen(player->name);
-	memcpy(blob->bytes + 1, player->name, name_length + 1);
+	strncpy(blob->bytes, player->name, name_length + 1);
+	// strncpy will not null-terminate the string if it is longer than n,
+	// so this will keep us safe
+	blob->bytes[name_length] = 0;
 	// the game_view_data is sent directly after the null-byte
-	memcpy(blob->bytes + 2 + name_length, player->view,
+	memcpy(blob->bytes + 1 + name_length, player->view,
 	       sizeof(struct game_view_data));
 	return blob;
 }
@@ -95,11 +140,7 @@ int send_player(int socket_fd, struct st_player *player) {
 
 	Blob *blob = serialize_state(player);
 
-	pthread_mutex_lock(&player->io_lock);
-	int status = message_nbytes(socket_fd, blob->bytes, blob->length, 0);
-	pthread_mutex_unlock(&player->io_lock);
-
-	return status;
+	return message_blob(socket_fd, blob, 0, MSG_TYPE_BOARD);
 }
 
 // vi:noet:noai:sw=0:sts=0:ts=8

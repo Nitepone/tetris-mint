@@ -25,7 +25,7 @@ list(APPEND ttetris_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/widgets.c
 )
 
-add_library(ttetrislib OBJECT ${ttetris_SOURCES} log.h log.c)
+add_library(ttetrislib OBJECT ${ttetris_SOURCES} log.h log.c party.c party.h event.c event.h)
 
 add_executable(solo_main solo_main.c tetris_game.c)
 add_executable(client client.c $<TARGET_OBJECTS:ttetrislib>)
