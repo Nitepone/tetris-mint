@@ -6,11 +6,12 @@
 #define MESSAGE "Basic functionality test"
 
 int main(void) {
-	tetris_connect(HOST, PORT);
+	NetClient *net_client = net_client_init();
+	tetris_connect(net_client, HOST, PORT);
 
 	/* Send data to the server. */
-	tetris_send_message(MESSAGE);
-	tetris_disconnect();
+	tetris_send_message(net_client, MESSAGE);
+	tetris_disconnect(net_client);
 
 	return 0;
 }
