@@ -34,7 +34,7 @@ int main(void) {
 	render_init(2, names);
 	render_game_view_data(names[0], &view);
 	render_game_view_data(names[1], &view);
-	render_message("Welcome to Tetris! Press q to quit.");
+	print_centered(stdscr, 1, "Welcome to Tetris! Press q to quit.");
 
 	// wait for 'q' key
 	while (getch() != 'q') {
