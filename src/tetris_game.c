@@ -268,7 +268,8 @@ int cull_lines(struct game_contents *game_contents) {
 
 int game_over(struct game_contents *game_contents) {
 	int i, j;
-	// iterate and count each row/line
+	// Iterate over all the tiles in the board that are considered
+	// out-of-play, ie. the tiles that are above the playable area.
 	for (j = BOARD_PLAY_HEIGHT; j < BOARD_HEIGHT; j++) {
 		for (i = 0; i < BOARD_WIDTH; i++) {
 			if (game_contents->board[j][i])

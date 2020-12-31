@@ -85,10 +85,10 @@ struct game_view_data {
 	int board[BOARD_HEIGHT][BOARD_WIDTH];
 };
 
-/*
+/**
  * Lowers the block down the board by 1
  * @param forced - 0 if move is done by client, non-zero if by game
- * @return - 0 if game is still good, -1 on game over
+ * @return - 0 if game is still good, -1 if the block cannot be lowered
  */
 int lower_block(int forced, struct game_contents *game_contents);
 
@@ -132,8 +132,10 @@ int destroy_game(struct game_contents **game_contents);
 int generate_game_view_data(struct game_view_data **gvd,
                             struct game_contents *gc);
 
-/*
- * Returns 0 if game is still ongoing
+/**
+ * Check if the game is over
+ * @param game_contents
+ * @return 0 if game is still ongoing or 1 if the game is over
  */
 int game_over(struct game_contents *game_contents);
 

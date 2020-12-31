@@ -17,7 +17,7 @@ void player_init() { player_list = list_create(); }
 void *player_clock(void *input) {
 	struct st_player *player = (struct st_player *)input;
 	fprintf(logging_fp, "player_clock: thread started\n");
-	while (1) {
+	do {
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
 
@@ -28,7 +28,8 @@ void *player_clock(void *input) {
 		// send board to opponent if one exists
 		if (player->opponent)
 			player->render(player->opponent->fd, player);
-	}
+
+	} while (game_over(player->contents) == 0);
 	fprintf(logging_fp, "player_clock: thread exiting\n");
 	return 0;
 }
