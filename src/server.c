@@ -152,8 +152,8 @@ int main(int argc, char *argv[]) {
 	char host[128] = "127.0.0.1";
 	char port[6] = "5555";
 
-	// set the logger file pointer to /dev/null
-	logging_set_fp(fopen("/dev/null", "w"));
+	// set the logger file pointer to stderr
+	logging_set_fp(stderr);
 
 	// Parse command line flags. The optstring passed to getopt has a
 	// preceding colon to tell getopt that missing flag values should be
