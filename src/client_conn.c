@@ -286,14 +286,16 @@ NetRequest *ttetris_net_request(NetClient *client, char *bytes,
 	NetRequest *request = malloc(sizeof(NetRequest));
 	// TODO Stop using the number of requests sent as the ID. Of course, we
 	// also want to be able to delete requests from this list at some point.
-	request->id = client->online_players->length + 1;
+	request->id = client->open_requests->length + 1;
 	request->ready_flag = 0;
 	pthread_cond_init(&request->ready_cond, NULL);
 	pthread_mutex_init(&request->ready_mutex, NULL);
 
-	message_nbytes(client->fd, bytes, nbytes, request->id);
-
+	// IMPORTANT: list_append must be called before message_nbytes to avoid
+	// a race condition
 	list_append(client->open_requests, request);
+
+	message_nbytes(client->fd, bytes, nbytes, request->id);
 
 	return request;
 };

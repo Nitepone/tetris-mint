@@ -33,8 +33,9 @@ struct ttetris_netrequest {
 	short id;
 	/* pointer to response content */
 	char *cursor;
-	/* multithreading condition junk */
+	/* flag to indicate that we got a response to our request */
 	int ready_flag;
+	/* mutex for the ready flag */
 	pthread_mutex_t ready_mutex;
 	pthread_cond_t ready_cond;
 };
