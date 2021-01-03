@@ -84,7 +84,7 @@ static void tetris_swap_hold(void *net_client) {
 
 StringArray *tetris_list(NetClient *net_client) {
 	NetRequest *request =
-	    ttetris_net_request(net_client, "", 0, MSG_TYPE_LIST);
+	    ttetris_net_request(net_client, NULL, 0, MSG_TYPE_LIST);
 	ttetris_net_request_block_for_response(request);
 
 	MessageHeader *header = (MessageHeader *)request->cursor;
@@ -149,7 +149,7 @@ void tetris_disconnect(NetClient *net_client) {
 static int read_game_view_data(char *buffer, struct game_view_data *view) {
 	// get the player associated with the board
 	char *board_name = buffer;
-	unsigned long name_length = strnlen(board_name, PLAYER_NAME_MAX_CHARS);
+	unsigned int name_length = strnlen(board_name, PLAYER_NAME_MAX_CHARS);
 	// move the pointer past the name string
 	buffer += name_length + 1;
 	// copy the game view data

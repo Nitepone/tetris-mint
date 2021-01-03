@@ -175,6 +175,7 @@ int main_menu(char *host, int port) {
 			run_online(host, port);
 			break;
 		case 2:
+			// TODO Implement the keybindings / controls menu (#21)
 			break;
 		case 3:
 			return EXIT_SUCCESS;
