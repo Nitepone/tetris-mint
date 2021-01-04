@@ -34,3 +34,6 @@ jobs:
 
     - name: Build Code
       run: make -j$(nproc)
+
+    - name: Run Tests
+      run: ./bin/unit_tests
