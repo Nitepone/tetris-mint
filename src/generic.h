@@ -23,11 +23,12 @@ void shift_blob(Blob *blob, int shift);
  * - Resizing this type is also more efficient than using a builtin array
  */
 typedef struct st_string_array {
+	int max_string_length;
 	int length;
 	char **strings;
 } StringArray;
 
-StringArray *string_array_create(int length);
+StringArray *string_array_create(int length, int max_string_length);
 void string_array_destroy(StringArray *arr);
 
 /**
@@ -38,7 +39,7 @@ void string_array_destroy(StringArray *arr);
  */
 void string_array_resize(StringArray *arr, int new_length);
 
-void string_array_set_item(StringArray *arr, int index, char *value);
+void string_array_set_item(StringArray *arr, int index, const char *value);
 char *string_array_get_item(StringArray *arr, int index);
 
 Blob *string_array_serialize(StringArray *arr);

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "event.h"
 #include "generic.h"
 #include "list.h"
 #include "log.h"
@@ -21,42 +22,70 @@ void *player_clock(void *input) {
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 		lower_block(1, player->contents);
 
-		// send board to player and clear socket if a failure occurs
-		if (player->render(player->fd, player) == EXIT_FAILURE)
-			player->fd = -1;
-
-		// send board to opponent if one exists
-		if (player->opponent)
-			player->render(player->opponent->fd, player);
+		// if the player has a party, send the board to all players
+		if (player->party) {
+			List *party_members =
+			    ttetris_party_get_players(player->party);
+			for (int i = 0; i < party_members->length; i++)
+				if (player->render(
+				        ((Player *)list_get(party_members, i))
+				            ->fd,
+				        player) == EXIT_FAILURE)
+					((Player *)list_get(party_members, i))
+					    ->fd = -1;
+		}
+		// otherwise, just send the board to the player
+		else {
+			if (player->render(player->fd, player) == EXIT_FAILURE)
+				player->fd = -1;
+		}
 
 	} while (game_over(player->contents) == 0);
 	fprintf(logging_fp, "player_clock: thread exiting\n");
 	return 0;
 }
 
-void start_game(struct st_player *player) {
+void player_game_start(struct st_player *player) {
 	pthread_create(&player->game_clk_thread, NULL, player_clock,
 	               (void *)player);
+}
+
+void player_game_stop(struct st_player *player) {
+	pthread_cancel(player->game_clk_thread);
 }
 
 struct st_player *get_player_from_fd(int fd) {
 	struct st_player *player;
 	for (int i = 0; i < player_list->length; i++) {
-		player = (struct st_player *)(list_get(player_list, i)->target);
+		player = (struct st_player *)list_get(player_list, i);
 		if (player->fd == fd)
 			return player;
 	}
 	return 0;
 }
 
-StringArray *player_names() {
-	StringArray *arr = string_array_create(player_list->length);
+StringArray *player_names(int exclude_in_game) {
+	int player_index, name_array_index;
 
-	for (int i = 0; i < player_list->length; i++) {
+	StringArray *arr =
+	    string_array_create(player_list->length, PLAYER_NAME_MAX_CHARS);
+
+	name_array_index = 0;
+	for (player_index = 0; player_index < player_list->length;
+	     player_index++) {
 		Player *player =
-		    (struct st_player *)(list_get(player_list, i)->target);
-		string_array_set_item(arr, i, player->name);
+		    (struct st_player *)list_get(player_list, player_index);
+		// skip players with no active socket file descriptor
+		if (player->fd == -1)
+			continue;
+		// skip players that are "in-game"
+		if (exclude_in_game && player->party != NULL)
+			continue;
+		string_array_set_item(arr, name_array_index++, player->name);
 	}
+
+	// downsize the string array
+	string_array_resize(arr, name_array_index);
 
 	return arr;
 }
@@ -69,7 +98,7 @@ StringArray *player_names() {
 Player *player_get_by_name(char *name) {
 	struct st_player *player;
 	for (int i = 0; i < player_list->length; i++) {
-		player = (struct st_player *)(list_get(player_list, i)->target);
+		player = (struct st_player *)list_get(player_list, i);
 		fprintf(logging_fp,
 		        "player_get_by_name: Checking player '%s'\n",
 		        player->name);
@@ -86,7 +115,8 @@ struct st_player *player_create(int fd, char *name) {
 	player->fd = fd;
 	player->name = malloc(strlen(name) + 1);
 	memcpy(player->name, name, strlen(name) + 1);
-	player->opponent = NULL;
+	player->game_start_event = ttetris_event_create();
+	player->party = NULL;
 	/* contents will be initialized by new_game */
 	player->contents = NULL;
 	player->view = malloc(sizeof(struct game_view_data));
@@ -100,16 +130,4 @@ struct st_player *player_create(int fd, char *name) {
 	new_game(&player->contents);
 
 	return player;
-}
-
-void player_set_opponent(Player *player, Player *opponent) {
-	if (opponent == NULL)
-		return;
-
-	player->opponent = opponent;
-	opponent->opponent = player;
-
-	fprintf(logging_fp,
-	        "player_set_opponent: %s and %s are now opponents\n",
-	        player->name, opponent->name);
 }

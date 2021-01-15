@@ -1,4 +1,5 @@
 #include "client_conn.h"
+#include "message.h"
 
 #define PORT 5555
 #define HOST "localhost"
@@ -10,7 +11,7 @@ int main(void) {
 	tetris_connect(net_client, HOST, PORT);
 
 	/* Send data to the server. */
-	tetris_send_message(net_client, MESSAGE);
+	tetris_send_message(net_client, MESSAGE, MSG_TYPE_UNKNOWN);
 	tetris_disconnect(net_client);
 
 	return 0;

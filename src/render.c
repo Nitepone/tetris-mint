@@ -26,7 +26,7 @@ struct board_display {
 	WINDOW *lines_window;
 };
 
-static struct board_display *boards;
+static struct board_display *boards = NULL;
 static int nboards;
 // flag used to indicate that the window layout needs to be refreshed
 static int dirty;
@@ -36,10 +36,12 @@ static int too_narrow = 0;
 static int too_short = 0;
 
 static struct board_display *board_from_name(char *name) {
+	if (boards == NULL)
+		return NULL;
 	for (int i = 0; i < nboards; i++)
 		if (strcmp(boards[i].name, name) == 0)
 			return boards + i;
-	return 0;
+	return NULL;
 }
 
 /**
@@ -57,6 +59,8 @@ static void set_window(WINDOW **win, int height, int width, int starty,
 }
 
 void _render_refresh_layout(void) {
+	if (nboards == 0)
+		return;
 	//
 	// There are a number of patterns to get ncurses to update the root
 	// window size.
@@ -244,12 +248,37 @@ void render_init(int n, char *names[]) {
 	signal(SIGTSTP, render_handle_sigtstp);
 }
 
-void render_close(void) {
-	// close the window
-	// destroy_win(tetris_window);
+/**
+ * cleanup everything associated with rendering the running game (ie. not menus,
+ * or curses itself, etc)
+ *
+ * important: cleanup any other threads that might call the renderer before
+ * using this method since this method will free memory
+ */
+void render_ingame_cleanup() {
+	struct board_display *bd;
+
+	for (int i = 0; i < nboards; i++) {
+		bd = &boards[i];
+		delwin(bd->tetris_window);
+		delwin(bd->next_block_window);
+		delwin(bd->hold_block_window);
+		delwin(bd->points_window);
+		delwin(bd->lines_window);
+	}
+
+	free(boards);
+	boards = NULL;
+
+	// clear the terminal
+	clear();
+	refresh();
+
 	// end curses mode
 	endwin();
 }
+
+void render_close(void) { render_ingame_cleanup(); }
 
 /**
  * Render the terminal background for a coordinate pair in cell-space

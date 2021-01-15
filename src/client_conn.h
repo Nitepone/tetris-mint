@@ -5,6 +5,7 @@
 
 #include "controller.h"
 #include "list.h"
+#include "message.h"
 #include "player.h"
 #include "tetris_game.h"
 
@@ -44,7 +45,7 @@ struct ttetris_netrequest {
  * send a message to the server using the given client connection
  */
 NetRequest *ttetris_net_request(NetClient *client, char *bytes,
-                                u_int16_t nbytes);
+                                u_int16_t nbytes, msg_type_t message_type);
 
 /**
  * set the response for a given net request
@@ -62,19 +63,32 @@ void ttetris_net_request_block_for_response(NetRequest *request);
 
 NetClient *net_client_init();
 
-void tetris_send_message(NetClient *net_client, char *body);
+void tetris_send_message(NetClient *net_client, char *body,
+                         msg_type_t message_type);
 
-void tetris_connect(NetClient *net_client, char *host, int port);
+/**
+ * Connect to the tetris server
+ *
+ * Note that calling this is not enough! You should call tetris_listen after
+ * this to start the listening thread.
+ * @param net_client
+ * @param host
+ * @param port
+ * @return
+ */
+int tetris_connect(NetClient *net_client, char *host, int port);
 
 void tetris_disconnect(NetClient *net_client);
+
+void tetris_tell_server_to_start(NetClient *net_client);
 
 StringArray *tetris_list(NetClient *net_client);
 
 void tetris_listen(NetClient *net_client);
 
-void tetris_register(NetClient *net_client, char *username);
+NetRequest *tetris_register(NetClient *net_client, char *username);
 
-void tetris_opponent(NetClient *net_client, char *username);
+void tetris_opponent(NetClient *net_client, StringArray *usernames);
 
 TetrisControlSet tcp_control_set(void);
 

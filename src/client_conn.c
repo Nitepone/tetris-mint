@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "client_conn.h"
+#include "event.h"
 #include "log.h"
 #include "message.h"
 #include "render.h"
@@ -35,9 +36,10 @@ static void init_sockaddr(struct sockaddr_in *name, const char *hostname,
 	name->sin_addr = *(struct in_addr *)hostinfo->h_addr;
 }
 
-void tetris_send_message(NetClient *net_client, char *body) {
+void tetris_send_message(NetClient *net_client, char *body,
+                         msg_type_t message_type) {
 	uint16_t len = strlen(body) + 1;
-	ttetris_net_request(net_client, body, len);
+	ttetris_net_request(net_client, body, len, message_type);
 }
 
 /**
@@ -54,47 +56,42 @@ int get_socket() {
 
 static void tetris_translate(void *net_client, int x) {
 	char xdir = x > 0 ? 1 : 0;
-	char message[128];
-	sprintf(message, "%c%c", MSG_TYPE_TRANSLATE, xdir);
-	tetris_send_message((NetClient *)net_client, message);
+	char message[2];
+	sprintf(message, "%c", xdir);
+	tetris_send_message((NetClient *)net_client, message,
+	                    MSG_TYPE_TRANSLATE);
 }
 
 static void tetris_lower(void *net_client) {
-	char message[8];
-	sprintf(message, "%c", MSG_TYPE_LOWER);
-	tetris_send_message((NetClient *)net_client, message);
+	ttetris_net_request((NetClient *)net_client, NULL, 0, MSG_TYPE_LOWER);
 }
 
 static void tetris_rotate(void *net_client, int theta) {
 	char dir = theta > 0 ? 1 : 0;
-	char message[128];
-	sprintf(message, "%c%c", MSG_TYPE_ROTATE, dir);
-	tetris_send_message((NetClient *)net_client, message);
+	char message[2];
+	sprintf(message, "%c", dir);
+	tetris_send_message((NetClient *)net_client, message, MSG_TYPE_ROTATE);
 }
 
 static void tetris_drop(void *net_client) {
-	char message[128];
-	sprintf(message, "%c", MSG_TYPE_DROP);
-	tetris_send_message((NetClient *)net_client, message);
+	ttetris_net_request((NetClient *)net_client, NULL, 0, MSG_TYPE_DROP);
 }
 
 static void tetris_swap_hold(void *net_client) {
-	char message[128];
-	sprintf(message, "%c", MSG_TYPE_SWAP_HOLD);
-	tetris_send_message((NetClient *)net_client, message);
+	ttetris_net_request((NetClient *)net_client, NULL, 0,
+	                    MSG_TYPE_SWAP_HOLD);
 }
 
 StringArray *tetris_list(NetClient *net_client) {
-	char message[1];
-	message[0] = MSG_TYPE_LIST;
-	NetRequest *request = ttetris_net_request(net_client, message, 1);
+	NetRequest *request =
+	    ttetris_net_request(net_client, NULL, 0, MSG_TYPE_LIST);
 	ttetris_net_request_block_for_response(request);
 
 	MessageHeader *header = (MessageHeader *)request->cursor;
 
 	// deserialize names
 	Blob *body = malloc(sizeof(Blob));
-	body->bytes = request->cursor + 1;
+	body->bytes = request->cursor;
 	body->length = header->content_length;
 	return string_array_deserialize(body);
 }
@@ -102,7 +99,7 @@ StringArray *tetris_list(NetClient *net_client) {
 /**
  * establish a connection to the server
  */
-void tetris_connect(NetClient *net_client, char *host, int port) {
+int tetris_connect(NetClient *net_client, char *host, int port) {
 	struct sockaddr_in servername;
 
 	/* Create the socket. */
@@ -112,29 +109,36 @@ void tetris_connect(NetClient *net_client, char *host, int port) {
 	init_sockaddr(&servername, host, port);
 	if (0 > connect(sock_fd, (struct sockaddr *)&servername,
 	                sizeof(servername))) {
-		perror("connect (client)");
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	net_client->fd = sock_fd;
+
+	return EXIT_SUCCESS;
 }
 
 /**
  * register
  */
-void tetris_register(NetClient *net_client, char *username) {
-	char message[128];
-	sprintf(message, "%c%s", MSG_TYPE_REGISTER, username);
-	tetris_send_message(net_client, message);
+NetRequest *tetris_register(NetClient *net_client, char *username) {
+	char message[16];
+	strncpy(message, username, 16);
+	return ttetris_net_request(net_client, message, 16, MSG_TYPE_REGISTER);
 }
 
 /**
  * select opponent by username
  */
-void tetris_opponent(NetClient *net_client, char *username) {
-	char message[128];
-	sprintf(message, "%c%s", MSG_TYPE_OPPONENT, username);
-	tetris_send_message(net_client, message);
+void tetris_opponent(NetClient *net_client, StringArray *usernames) {
+	Blob *message = string_array_serialize(usernames);
+	ttetris_net_request(net_client, message->bytes, message->length,
+	                    MSG_TYPE_OPPONENT);
+	free(message->bytes);
+	free(message);
+}
+
+void tetris_tell_server_to_start(NetClient *net_client) {
+	message_nbytes(net_client->fd, NULL, 0, 0, MSG_TYPE_START_GAME);
 }
 
 void tetris_disconnect(NetClient *net_client) {
@@ -142,31 +146,15 @@ void tetris_disconnect(NetClient *net_client) {
 	net_client->is_listen_thread_started = 0;
 }
 
-int read_game_view_data(char **cursor, struct game_view_data *view) {
-	char *buffer = *cursor;
-	// move the pointer past the message identifier
-	++buffer;
+static int read_game_view_data(char *buffer, struct game_view_data *view) {
 	// get the player associated with the board
 	char *board_name = buffer;
-	int name_length = strlen(board_name);
+	unsigned int name_length = strnlen(board_name, PLAYER_NAME_MAX_CHARS);
 	// move the pointer past the name string
 	buffer += name_length + 1;
 	// copy the game view data
 	memcpy(view, buffer, sizeof(struct game_view_data));
 	render_game_view_data(board_name, view);
-
-	return EXIT_SUCCESS;
-}
-
-int read_names(char **cursor) {
-	char *buffer = *cursor;
-	int received_names = *(int *)(buffer + 1);
-	printf("Num strings received: %d\n", received_names);
-	char *current_name = buffer + 5;
-	for (int i = 0; i < received_names; i++) {
-		printf("Name: %s\n", current_name);
-		current_name += strlen(current_name) + 1;
-	}
 
 	return EXIT_SUCCESS;
 }
@@ -179,6 +167,7 @@ void ttetris_net_request_complete(NetRequest *request) {
 };
 
 int read_from_server(NetClient *net_client) {
+	Blob *blob;
 	char buffer[MAXMSG];
 
 	// remember that more than one TCP packet may be read by this command
@@ -199,15 +188,45 @@ int read_from_server(NetClient *net_client) {
 	char *cursor = buffer;
 
 	while (cursor < end) {
-		MessageHeader *header = (MessageHeader *)buffer;
+		MessageHeader *header = (MessageHeader *)cursor;
+
+		// Check the magic number, used a mechanism to detect errors.
+		// For now, we won't fail and exit, but we could consider doing
+		// that in the future.
+		if (header->magic_number != MSG_MAGIC_NUMBER) {
+			fprintf(logging_fp,
+			        "read_from_server: incorrect magic number");
+			return EXIT_SUCCESS;
+		}
 
 		// increment the cursor to the start of the message body
 		cursor += sizeof(MessageHeader);
 
-		switch (cursor[0]) {
-		case MSG_TYPE_BOARD:
-			read_game_view_data(&cursor, net_client->player->view);
+		//
+		// This switch statement is essentially for actions that should
+		// be taken for incoming messages. For synchronous "requests",
+		// no action is necessary in this switch statement. See
+		// ttetris_net_request.
+		//
+		switch (header->message_type) {
+		case MSG_TYPE_GAME_STARTED:
+			fprintf(logging_fp, "read_from_server: game started\n");
+			blob = malloc(sizeof(Blob));
+			blob->length = header->content_length;
+			blob->bytes = cursor;
+			StringArray *party_members =
+			    string_array_deserialize(blob);
+			render_init(party_members->length,
+			            party_members->strings);
+			free(blob);
+			// signal that the game has started
+			ttetris_event_mark_complete(
+			    net_client->player->game_start_event);
 			break;
+		case MSG_TYPE_BOARD:
+			read_game_view_data(cursor, net_client->player->view);
+			break;
+		case MSG_TYPE_REGISTER_SUCCESS:
 		case MSG_TYPE_LIST_RESPONSE:
 			break;
 		default:
@@ -223,8 +242,7 @@ int read_from_server(NetClient *net_client) {
 			for (int i = 0; i < net_client->open_requests->length;
 			     i++) {
 				request = (NetRequest *)list_get(
-				              net_client->open_requests, i)
-				              ->target;
+				    net_client->open_requests, i);
 				if (request->id == header->request_id) {
 					request->cursor =
 					    malloc(header->content_length);
@@ -282,7 +300,7 @@ NetClient *net_client_init() {
 };
 
 NetRequest *ttetris_net_request(NetClient *client, char *bytes,
-                                u_int16_t nbytes) {
+                                u_int16_t nbytes, msg_type_t message_type) {
 	NetRequest *request = malloc(sizeof(NetRequest));
 	// TODO Stop using the number of requests sent as the ID. Of course, we
 	// also want to be able to delete requests from this list at some point.
@@ -295,7 +313,7 @@ NetRequest *ttetris_net_request(NetClient *client, char *bytes,
 	// a race condition
 	list_append(client->open_requests, request);
 
-	message_nbytes(client->fd, bytes, nbytes, request->id);
+	message_nbytes(client->fd, bytes, nbytes, request->id, message_type);
 
 	return request;
 };
