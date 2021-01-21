@@ -15,10 +15,17 @@ Also see [docs/DEVELOP.md](docs/DEVELOP.md).
 ### Compiling
 
 ```bash
-cd src
 cmake .
-make
+make -j$(nproc)
 ```
+
+Output files are put into `./bin/`
+
+### Testing
+
+Unit tests are compiled into a single executable.
+
+They can be run by running `./bin/unit_tests`
 
 ## Usage
 

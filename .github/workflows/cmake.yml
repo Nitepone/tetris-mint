@@ -5,7 +5,7 @@ on: [push]
 defaults:
   run:
     shell: bash
-    working-directory: ./src
+    working-directory: ./
 
 jobs:
 
@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    
+
     - uses: DoozyX/clang-format-lint-action@v0.11
       with:
         source: './src'
@@ -26,8 +26,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Download Submodules
+      run: git submodule update --init --recursive
+
     - name: Build Make
-      run: cmake . -Bbuild
+      run: cmake ./
 
     - name: Build Code
-      run: cd build && make -j$(nproc)
+      run: make -j$(nproc)
+
+    - name: Run Tests
+      run: ./bin/unit_tests
