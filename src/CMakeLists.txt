@@ -6,6 +6,7 @@ project(ttetris)
 add_definitions('-g')
 add_definitions('-Wall')
 add_definitions('-std=gnu99')
+add_definitions('-fcommon')
 
 find_package(Threads)
 find_package(Curses)
