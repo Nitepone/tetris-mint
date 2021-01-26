@@ -1,6 +1,6 @@
 /*
  * tetris-game.c
- * Copyright (C) 2019 nitepone <admin@night.horse>
+ * Copyright (C) 2019-2021 nitepone <admin@night.horse>
  *
  * Distributed under terms of the MIT license.
  */
@@ -43,24 +43,25 @@ int destroy_block(struct active_block **block) {
 /*
  * Generates a block at the top of the game board
  */
-int spawn_active_block(struct active_block **block, enum block_type type) {
+int spawn_active_block(struct active_block **block,
+                       struct tetris_block tetris_block) {
 	// allocate and fill
-	(*block)->block_type = type;
+	(*block)->tetris_block = tetris_block;
 	(*block)->position = ((struct position)BLOCK_START_POSITION);
 	(*block)->rotation = none;
 	return 0;
 }
 
 int generate_new_block(struct game_contents *game_contents) {
-	int rng = rand_r(&(game_contents)->seed) % ARRAY_SIZE(active_blocktypes);
+	int rng = rand_r(&(game_contents)->seed) % ARRAY_SIZE(available_blocks);
 	spawn_active_block(&game_contents->active_block,
 	                   game_contents->next_block);
-	game_contents->next_block = active_blocktypes[rng];
+	game_contents->next_block = available_blocks[rng];
 	return 0;
 }
 
 /*
- * Initializes a game_contents struct in memory
+ * Initalizes a game_contents struct in memory
  */
 int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	// destroy old memory cleanly
@@ -73,12 +74,12 @@ int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	(*game_contents)->seed = seed;
 	(*game_contents)->auto_lower_count = 0;
 	(*game_contents)->swap_h_block_count = 0;
-	(*game_contents)->hold_block = NO_BLOCK_VAL;
+	(*game_contents)->hold_block = tetris_block_null;
 	(*game_contents)->lines_cleared = 0;
 	(*game_contents)->points = 0;
 	(*game_contents)->next_block =
-	    active_blocktypes[ rand_r(&(*game_contents)->seed) %
-			      ARRAY_SIZE(active_blocktypes) ];
+	    available_blocks[rand_r(&(*game_contents)->seed) %
+	                     ARRAY_SIZE(available_blocks)];
 	generate_new_block(*game_contents);
 	return 0;
 }
@@ -99,9 +100,9 @@ int new_game(struct game_contents **game_contents) {
 int get_ec_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+	for (i = 0; i < block->tetris_block.cell_count; i++) {
 		// get one offset
-		cur_offset_pos = block_offsets[block->block_type][i];
+		cur_offset_pos = block->tetris_block.position_offsets[i];
 		// rotate
 		switch (block->rotation) {
 		case none:
@@ -134,9 +135,9 @@ int get_ec_block_pos(struct active_block *block) {
 int get_bc_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+	for (i = 0; i < block->tetris_block.cell_count; i++) {
 		// get one offset
-		cur_offset_pos = block_offsets[block->block_type][i];
+		cur_offset_pos = block->tetris_block.position_offsets[i];
 		// rotate
 		switch (block->rotation) {
 		case none:
@@ -168,17 +169,12 @@ int get_bc_block_pos(struct active_block *block) {
  * and special blocks to their associated functions.
  */
 int get_block_positions(struct active_block *block) {
-	switch (block->block_type) {
+	switch (block->tetris_block.rotation_type) {
 	// special blocks
-	case smashboy:
-	case hero:
+	case corner_based:
 		return get_ec_block_pos(block);
 	// standard blocks
-	case orange:
-	case blue:
-	case cleve:
-	case rhode:
-	case teewee:
+	case center_based:
 		return get_bc_block_pos(block);
 	default:
 		return -1;
@@ -291,7 +287,7 @@ int place_block(struct game_contents *game_contents) {
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = game_contents->active_block->board_units[i];
 		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)game_contents->active_block->block_type);
+		    ((int)game_contents->active_block->tetris_block.type);
 	}
 	// check for lines
 	cull_lines(game_contents);
@@ -384,17 +380,14 @@ int lower_block(int auto_drop, struct game_contents *gc) {
 }
 
 int hard_drop(struct game_contents *gc) {
-	//while ( ! place_block(gc) ) {
-	//	lower_block_helper(gc, gc->active_block);
-	//}
-	while ( lower_block_helper(gc, gc->active_block) )
+	while (lower_block_helper(gc, gc->active_block))
 		;
 	return place_block(gc);
 }
 
 int generate_shadow_block(struct game_contents *gc) {
 	clone_block(gc->active_block, &(gc->shadow_block));
-	while ( lower_block_helper(gc, gc->shadow_block) )
+	while (lower_block_helper(gc, gc->shadow_block))
 		;
 	return 0;
 }
@@ -421,33 +414,45 @@ int generate_game_view_data(struct game_view_data **gvd,
 		// draw active_block to board
 		cur_unit_pos = gc->active_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)gc->active_block->block_type);
+		    ((int)gc->active_block->tetris_block.type);
 	}
 	// save scores into gvd
 	(*gvd)->lines_cleared = gc->lines_cleared;
 	(*gvd)->points = gc->points;
 	// save next and hold blocks
-	(*gvd)->hold_block = gc->hold_block;
-	(*gvd)->next_block = gc->next_block;
+	(*gvd)->hold_block = gc->hold_block.type;
+	(*gvd)->next_block = gc->next_block.type;
 	return 0;
 }
 
 int swap_hold_block(struct game_contents *gc) {
-	enum block_type active_type;
+	struct tetris_block active_type;
 
 	// catch too many swaps between block placement
 	if (gc->swap_h_block_count >= MAX_SWAP_H)
 		return -1;
 
-	if (gc->hold_block == NO_BLOCK_VAL) {
-		gc->hold_block = gc->active_block->block_type;
+	if (gc->hold_block.type == no_type) {
+		gc->hold_block = gc->active_block->tetris_block;
 		generate_new_block(gc);
 	} else {
 		active_type = gc->hold_block;
-		gc->hold_block = gc->active_block->block_type;
+		gc->hold_block = gc->active_block->tetris_block;
 		spawn_active_block(&gc->active_block, active_type);
 	}
 
 	gc->swap_h_block_count++;
 	return 0;
 };
+
+int get_tetris_block_offsets(const struct position **offset,
+                             enum block_type type) {
+	int i;
+	for (i = 0; i < ARRAY_SIZE(available_blocks); i++) {
+		if (type == available_blocks[i].type) {
+			*offset = available_blocks[i].position_offsets;
+			return available_blocks[i].cell_count;
+		}
+	}
+	return -1;
+}

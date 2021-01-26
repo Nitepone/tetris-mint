@@ -27,33 +27,33 @@ void print_board() {
 		for (j = (BOARD_WIDTH - 1); j >= 0; j--) {
 			val = gvd->board[i][j];
 			switch ((enum block_type)val) {
-				case shadow:
-					printf("\e[37;1m");
-					break;
-				case empty:
-					printf("\e[30;1m");
-					break;
-				case smashboy:
-					printf("\e[93;1m");
-					break;
-				case hero:
-					printf("\e[96;1m");
-					break;
-				case orange:
-					printf("\e[33;1m");
-					break;
-				case blue:
-					printf("\e[34;1m");
-					break;
-				case cleve:
-					printf("\e[32;1m");
-					break;
-				case rhode:
-					printf("\e[31;1m");
-					break;
-				case teewee:
-					printf("\e[35;1m");
-					break;
+			case shadow:
+				printf("\e[37;1m");
+				break;
+			case no_type:
+				printf("\e[30;1m");
+				break;
+			case smashboy:
+				printf("\e[93;1m");
+				break;
+			case hero:
+				printf("\e[96;1m");
+				break;
+			case orange:
+				printf("\e[33;1m");
+				break;
+			case blue:
+				printf("\e[34;1m");
+				break;
+			case cleve:
+				printf("\e[32;1m");
+				break;
+			case rhode:
+				printf("\e[31;1m");
+				break;
+			case teewee:
+				printf("\e[35;1m");
+				break;
 			};
 			printf("██");
 		}
