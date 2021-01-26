@@ -14,7 +14,7 @@
 #include "tetris_game.h"
 
 struct game_contents *game_contents;
-struct game_view_data *gvd;
+struct game_view_data *gvd = NULL;
 
 void print_board() {
 	int i, j, val;
@@ -23,9 +23,38 @@ void print_board() {
 	printf("\n\n\n\n\n\n\n\n");
 	for (i = (BOARD_HEIGHT - 1); i >= 0; i--) {
 		printf("                    ");
+		printf("\e[40;1m");
 		for (j = (BOARD_WIDTH - 1); j >= 0; j--) {
 			val = gvd->board[i][j];
-			printf("\e[0;3%dm", val);
+			switch ((enum block_type)val) {
+				case shadow:
+					printf("\e[37;1m");
+					break;
+				case empty:
+					printf("\e[30;1m");
+					break;
+				case smashboy:
+					printf("\e[93;1m");
+					break;
+				case hero:
+					printf("\e[96;1m");
+					break;
+				case orange:
+					printf("\e[33;1m");
+					break;
+				case blue:
+					printf("\e[34;1m");
+					break;
+				case cleve:
+					printf("\e[32;1m");
+					break;
+				case rhode:
+					printf("\e[31;1m");
+					break;
+				case teewee:
+					printf("\e[35;1m");
+					break;
+			};
 			printf("██");
 		}
 		printf("\n\e[0;0m");
@@ -50,7 +79,7 @@ int main() {
 	static struct termios oldt, newt;
 	pthread_t thread;
 
-	new_game(&game_contents);
+	new_seeded_game(&game_contents, 0);
 	pthread_create(&thread, NULL, game_clock, (void *)game_contents);
 	tcgetattr(STDIN_FILENO, &oldt);
 	newt = oldt;
@@ -60,10 +89,10 @@ int main() {
 	while ((c = getchar()) != 'f') {
 		switch (c) {
 		case 'a':
-			translate_block(1, game_contents);
+			translate_block_left(game_contents);
 			break;
 		case 'd':
-			translate_block(0, game_contents);
+			translate_block_right(game_contents);
 			break;
 		case 'q':
 			rotate_block(1, game_contents);

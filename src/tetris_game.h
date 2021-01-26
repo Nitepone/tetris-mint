@@ -19,7 +19,9 @@
 #define BOARD_PLAY_HEIGHT 20
 #define BOARD_WIDTH 10
 
-#define NO_BLOCK_VAL -1
+#define NO_BLOCK_VAL 0
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 enum rotation {
 	none,
@@ -30,15 +32,28 @@ enum rotation {
 #define ROT_COUNT 4
 
 enum block_type {
+	shadow = -1,
+	empty = NO_BLOCK_VAL,
+	orange = 1,
+	blue = 2,
+	cleve = 3,
+	rhode = 4,
+	teewee = 5,
+	hero = 6,
+	smashboy = 7,
+};
+
+// TODO: Store active_blocktypes and block_offsets in 1 data structure
+static const enum block_type active_blocktypes[] = {
 	orange,
 	blue,
 	cleve,
 	rhode,
 	teewee,
-	smashboy,
 	hero,
+	smashboy
 };
-#define BLOCK_TYPE_COUNT 7
+#define BLOCK_TYPE_COUNT 8
 
 struct position {
 	int x;
@@ -55,7 +70,8 @@ struct active_block {
 
 static const struct position block_offsets[BLOCK_TYPE_COUNT][MAX_BLOCK_UNITS] =
     {
-        {{0, 0}, {0, -1}, {1, -1}, {0, 1}},  // orange
+	{}, // Empty
+	{{0, 0}, {0, -1}, {1, -1}, {0, 1}},  // orange
         {{0, 0}, {0, -1}, {-1, -1}, {0, 1}}, // blue
         {{0, 0}, {-1, 0}, {-1, 1}, {0, -1}}, // cleve
         {{0, 0}, {-1, 0}, {-1, -1}, {0, 1}}, // rhode
@@ -75,6 +91,7 @@ struct game_contents {
 	enum block_type next_block;
 	enum block_type hold_block;
 	struct active_block *active_block;
+	struct active_block *shadow_block;
 };
 
 struct game_view_data {
@@ -93,11 +110,17 @@ struct game_view_data {
 int lower_block(int forced, struct game_contents *game_contents);
 
 /*
- * Translates a block left or right a unit
- * @param rightward - zero if block movement is leftward, else rightward
+ * Translates a block left a unit
  * @return - 0 if piece moved, else non-zero
  */
-int translate_block(int rightward, struct game_contents *game_contents);
+int translate_block_left(struct game_contents *gc);
+
+/*
+ * Translates a block right a unit
+ * @return - 0 if piece moved, else non-zero
+ */
+int translate_block_right(struct game_contents *gc);
+
 
 /*
  * Rotates a block left or right

@@ -133,7 +133,11 @@ int read_from_client(int filedes) {
 			rotate_block(cursor[0], player->contents);
 			break;
 		case MSG_TYPE_TRANSLATE:
-			translate_block(cursor[0], player->contents);
+			if (cursor[0]) {
+				translate_block_left(player->contents);
+			} else {
+				translate_block_right(player->contents);
+			}
 			break;
 		case MSG_TYPE_LOWER:
 			lower_block(0, player->contents);

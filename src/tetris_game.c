@@ -52,10 +52,10 @@ int spawn_active_block(struct active_block **block, enum block_type type) {
 }
 
 int generate_new_block(struct game_contents *game_contents) {
+	int rng = rand_r(&(game_contents)->seed) % ARRAY_SIZE(active_blocktypes);
 	spawn_active_block(&game_contents->active_block,
 	                   game_contents->next_block);
-	game_contents->next_block =
-	    rand_r(&game_contents->seed) % BLOCK_TYPE_COUNT;
+	game_contents->next_block = active_blocktypes[rng];
 	return 0;
 }
 
@@ -68,6 +68,7 @@ int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	// allocate new memory
 	*game_contents = calloc(1, sizeof(**game_contents));
 	(*game_contents)->active_block = calloc(1, sizeof(struct active_block));
+	(*game_contents)->shadow_block = calloc(1, sizeof(struct active_block));
 	// set values
 	(*game_contents)->seed = seed;
 	(*game_contents)->auto_lower_count = 0;
@@ -76,7 +77,8 @@ int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	(*game_contents)->lines_cleared = 0;
 	(*game_contents)->points = 0;
 	(*game_contents)->next_block =
-	    rand_r(&(*game_contents)->seed) % BLOCK_TYPE_COUNT;
+	    active_blocktypes[ rand_r(&(*game_contents)->seed) %
+			      ARRAY_SIZE(active_blocktypes) ];
 	generate_new_block(*game_contents);
 	return 0;
 }
@@ -167,6 +169,10 @@ int get_bc_block_pos(struct active_block *block) {
  */
 int get_block_positions(struct active_block *block) {
 	switch (block->block_type) {
+	// special blocks
+	case smashboy:
+	case hero:
+		return get_ec_block_pos(block);
 	// standard blocks
 	case orange:
 	case blue:
@@ -174,10 +180,8 @@ int get_block_positions(struct active_block *block) {
 	case rhode:
 	case teewee:
 		return get_bc_block_pos(block);
-	// special blocks
-	case smashboy:
-	case hero:
-		return get_ec_block_pos(block);
+	default:
+		return -1;
 	}
 	return 0;
 }
@@ -287,7 +291,7 @@ int place_block(struct game_contents *game_contents) {
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = game_contents->active_block->board_units[i];
 		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)game_contents->active_block->block_type + 1);
+		    ((int)game_contents->active_block->block_type);
 	}
 	// check for lines
 	cull_lines(game_contents);
@@ -299,25 +303,28 @@ int place_block(struct game_contents *game_contents) {
 	return 0;
 }
 
-int translate_block(int rightward, struct game_contents *game_contents) {
+int translate_block_helper(struct game_contents *gc, int distance) {
 	struct active_block *new_block = NULL;
-	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
+	clone_block(gc->active_block, &new_block);
 	// perform translation
-	if (rightward)
-		new_block->position.x++;
-	else
-		new_block->position.x--;
+	new_block->position.x += distance;
 	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
-		destroy_block(&temp_block_p);
+	if (!test_block(gc, new_block)) {
+		gc->active_block->position = new_block->position;
+		destroy_block(&new_block);
 		return 0;
 	} else {
 		destroy_block(&new_block);
 		return -1;
 	}
+}
+
+int translate_block_right(struct game_contents *gc) {
+	return translate_block_helper(gc, -1);
+}
+
+int translate_block_left(struct game_contents *gc) {
+	return translate_block_helper(gc, 1);
 }
 
 int rotate_block(int clockwise, struct game_contents *game_contents) {
@@ -343,37 +350,53 @@ int rotate_block(int clockwise, struct game_contents *game_contents) {
 	}
 }
 
-int lower_block(int auto_drop, struct game_contents *game_contents) {
+int lower_block_helper(struct game_contents *gc, struct active_block *block) {
 	struct active_block *new_block = NULL;
-	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
+	clone_block(block, &new_block);
 	// perform transform
 	new_block->position.y--;
 	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
-		destroy_block(&temp_block_p);
+	if (!test_block(gc, new_block)) {
+		block->position = new_block->position;
+		destroy_block(&new_block);
 		return -1;
+	} else {
+		// destroy translated block
+		destroy_block(&new_block);
+		return 0;
 	}
+}
 
-	// destroy translated block
-	destroy_block(&new_block);
+int lower_block(int auto_drop, struct game_contents *gc) {
+	int ret = 0;
+	ret = lower_block_helper(gc, gc->active_block);
+	if (ret) {
+		return ret;
+	}
 	// handle placing block if needed
 	if (!auto_drop) {
-		return place_block(game_contents);
+		return place_block(gc);
 	} else {
-		if (game_contents->auto_lower_count++ >= MAX_AUTO_LOWER)
-			return place_block(game_contents);
+		if (gc->auto_lower_count++ >= MAX_AUTO_LOWER)
+			return place_block(gc);
 	}
 	return -1;
 }
 
 int hard_drop(struct game_contents *gc) {
-	int ret = 0;
-	while (((ret = lower_block(0, gc)) < 0))
+	//while ( ! place_block(gc) ) {
+	//	lower_block_helper(gc, gc->active_block);
+	//}
+	while ( lower_block_helper(gc, gc->active_block) )
 		;
-	return ret;
+	return place_block(gc);
+}
+
+int generate_shadow_block(struct game_contents *gc) {
+	clone_block(gc->active_block, &(gc->shadow_block));
+	while ( lower_block_helper(gc, gc->shadow_block) )
+		;
+	return 0;
 }
 
 int generate_game_view_data(struct game_view_data **gvd,
@@ -387,12 +410,18 @@ int generate_game_view_data(struct game_view_data **gvd,
 	memcpy((*gvd)->board, gc->board,
 	       sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
 
-	// draw current piece on gvd
+	generate_shadow_block(gc);
 	get_block_positions(gc->active_block);
+	get_block_positions(gc->shadow_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+		// draw shadow_block to board
+		cur_unit_pos = gc->shadow_block->board_units[i];
+		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
+		    ((int)(enum block_type)shadow);
+		// draw active_block to board
 		cur_unit_pos = gc->active_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)gc->active_block->block_type) + 1;
+		    ((int)gc->active_block->block_type);
 	}
 	// save scores into gvd
 	(*gvd)->lines_cleared = gc->lines_cleared;
@@ -400,7 +429,6 @@ int generate_game_view_data(struct game_view_data **gvd,
 	// save next and hold blocks
 	(*gvd)->hold_block = gc->hold_block;
 	(*gvd)->next_block = gc->next_block;
-
 	return 0;
 }
 

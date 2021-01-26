@@ -228,6 +228,7 @@ void render_init(int n, char *names[]) {
 	init_pair(5, COLOR_BLUE, COLOR_BLUE);
 	init_pair(6, COLOR_MAGENTA, COLOR_MAGENTA);
 	init_pair(7, COLOR_CYAN, COLOR_CYAN);
+	init_pair(8, COLOR_WHITE, COLOR_WHITE);
 
 	// set the static variable for this module
 	nboards = n;
@@ -292,6 +293,9 @@ void render_close(void) { render_ingame_cleanup(); }
 static void render_cell(WINDOW *win, int row, int col, short color) {
 	for (int i = 1; i <= CELL_WIDTH; i++)
 		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+	// Handle Shadow Block
+	if (color == -1)
+		color = 8;
 	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
 	         NULL);
 }
@@ -348,7 +352,7 @@ static void render_tetris_piece(WINDOW *win, enum block_type piece,
 	for (int i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cell_offset = rotate_position(block_offsets[piece][i], rot);
 		render_cell(win, pos.y - cell_offset.y, pos.x + cell_offset.x,
-		            piece + 1);
+		            piece);
 	}
 }
 

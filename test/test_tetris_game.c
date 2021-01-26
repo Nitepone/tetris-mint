@@ -30,7 +30,7 @@ void test_game_view(void) {
 	TEST_ASSERT_EQUAL_INT(0, generate_game_view_data(&gvd, gc));
 	TEST_ASSERT_EQUAL_INT(0, gvd->points);
 	TEST_ASSERT_EQUAL_INT(0, gvd->lines_cleared);
-	TEST_ASSERT_EQUAL_INT(5, gvd->next_block);
+	TEST_ASSERT_EQUAL_INT(6, gvd->next_block);
 	TEST_ASSERT_EQUAL_INT(0, destroy_game(&gc));
 }
 
@@ -39,14 +39,14 @@ void test_hold_block(void) {
 	struct game_contents *gc = NULL;
 	TEST_ASSERT_EQUAL_INT(0, new_seeded_game(&gc, 0));
 	// Check current block
-	TEST_ASSERT_EQUAL_INT(4, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
 	// Swap block to hold
 	TEST_ASSERT_EQUAL_INT(0, swap_hold_block(gc));
 	// Check current block
-	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(6, gc->active_block->block_type);
 	// Check that GVD contains correct block
 	TEST_ASSERT_EQUAL_INT(0, generate_game_view_data(&gvd, gc));
-	TEST_ASSERT_EQUAL_INT(4, gvd->hold_block);
+	TEST_ASSERT_EQUAL_INT(5, gvd->hold_block);
 	TEST_ASSERT_EQUAL_INT(0, destroy_game(&gc));
 }
 
@@ -65,13 +65,13 @@ void test_left_boundary(void) {
 	struct game_view_data *gvd = NULL;
 	struct game_contents *gc = NULL;
 	TEST_ASSERT_EQUAL_INT(0, new_seeded_game(&gc, 0));
-	TEST_ASSERT_EQUAL_INT(4, gc->active_block->block_type);
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
+	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
 	// This next move should hit boundary
-	TEST_ASSERT_EQUAL_INT(-1, translate_block(1, gc));
+	TEST_ASSERT_EQUAL_INT(-1, translate_block_left(gc));
 	TEST_ASSERT_EQUAL_INT(0, destroy_game(&gc));
 }
 
@@ -79,13 +79,13 @@ void test_right_boundary(void) {
 	struct game_view_data *gvd = NULL;
 	struct game_contents *gc = NULL;
 	TEST_ASSERT_EQUAL_INT(0, new_seeded_game(&gc, 0));
-	TEST_ASSERT_EQUAL_INT(4, gc->active_block->block_type);
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
+	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
 	// This next move should hit boundary
-	TEST_ASSERT_EQUAL_INT(-1, translate_block(1, gc));
+	TEST_ASSERT_EQUAL_INT(-1, translate_block_left(gc));
 	TEST_ASSERT_EQUAL_INT(0, destroy_game(&gc));
 }
 
@@ -94,21 +94,21 @@ void test_clear_line(void) {
 	struct game_contents *gc = NULL;
 	TEST_ASSERT_EQUAL_INT(0, new_seeded_game(&gc, 0));
 	// Position and drop block 1
-	TEST_ASSERT_EQUAL_INT(4, gc->active_block->block_type);
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(1, gc));
+	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_left(gc));
 	TEST_ASSERT_EQUAL_INT(0, hard_drop(gc));
 	// Position and drop block 2
-	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(6, gc->active_block->block_type);
 	TEST_ASSERT_EQUAL_INT(0, rotate_block(1, gc));
 	TEST_ASSERT_EQUAL_INT(0, hard_drop(gc));
 	// Position and drop block 3
-	TEST_ASSERT_EQUAL_INT(4, gc->active_block->block_type);
-	TEST_ASSERT_EQUAL_INT(0, translate_block(0, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(0, gc));
-	TEST_ASSERT_EQUAL_INT(0, translate_block(0, gc));
+	TEST_ASSERT_EQUAL_INT(5, gc->active_block->block_type);
+	TEST_ASSERT_EQUAL_INT(0, translate_block_right(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_right(gc));
+	TEST_ASSERT_EQUAL_INT(0, translate_block_right(gc));
 	TEST_ASSERT_EQUAL_INT(0, hard_drop(gc));
 	// Count Points and Lines
 	TEST_ASSERT_EQUAL_INT(0, generate_game_view_data(&gvd, gc));
