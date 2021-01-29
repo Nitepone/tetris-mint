@@ -1,4 +1,5 @@
 #include "widgets.h"
+#include "curses_text_entry.h"
 #include "generic.h"
 #include "player.h"
 #include <form.h>
@@ -23,70 +24,26 @@ static void strip(char *text) {
 }
 
 void ttviz_entry(char *username, char *label, int max_length) {
-	int label_len = strlen(label);
+	int ch, _exit;
+	CursesTextEntry *entry;
 
-	FIELD *field[2];
-	FORM *my_form;
-	int ch;
+	erase();
 
-	/* Initialize the fields */
-	field[0] = new_field(1, 10, 4, label_len + 11, 0, 0);
-	field[1] = NULL;
+	mvprintw(2, 2, "Enter a Username:");
 
-	/* Set field options */
-	set_field_back(field[0],
-	               A_UNDERLINE); /* Print a line for the option 	*/
-	field_opts_off(field[0],
-	               O_AUTOSKIP); /* Don't go to next field when this */
-	                            /* Field is filled up 		*/
+	if ((_exit = curses_text_field_create(&entry, stdscr, 3, 20, 3, 1,
+	                                      max_length)) != EXIT_SUCCESS)
+		exit(_exit);
+	curses_text_field_refresh(entry);
 
-	/* Create the form and post it */
-	my_form = new_form(field);
-	post_form(my_form);
-	refresh();
-
-	mvprintw(4, 10, label);
-	refresh();
-
-	/* Loop through to get user requests */
 	while ((ch = getch()) != '\n') {
-		switch (ch) {
-		case KEY_DOWN:
-			/* Go to next field */
-			form_driver(my_form, REQ_NEXT_FIELD);
-			/* Go to the end of the present buffer */
-			/* Leaves nicely at the last character */
-			form_driver(my_form, REQ_END_LINE);
-			break;
-		case KEY_UP:
-			/* Go to previous field */
-			form_driver(my_form, REQ_PREV_FIELD);
-			form_driver(my_form, REQ_END_LINE);
-			break;
-		default:
-			/* If this is a normal character, it gets */
-			/* Printed				  */
-			form_driver(my_form, ch);
-			break;
-		}
+		curses_text_field_feed(entry, ch);
+		curses_text_field_refresh(entry);
 	}
 
-	// call to form driver is necessary before we can read from the field
-	// buffer
-	form_driver(my_form, REQ_VALIDATION);
-	char *result = field_buffer(field[0], 0);
-	strncpy(username, result, max_length);
-	// it seems like the form field always has extra spaces, so get rid of
-	// those
-	strip(username);
+	strncpy(username, curses_text_field_value(entry), 7);
 
-	/* Un post form and free the memory */
-	unpost_form(my_form);
-	free_form(my_form);
-	free_field(field[0]);
-	free_field(field[1]);
-
-	endwin();
+	curses_text_field_destroy(entry);
 }
 
 struct ttetris_widget_selection {
