@@ -36,6 +36,10 @@
 *.x86_64
 *.hex
 
+# Packages
+*.deb
+*.rpm
+
 # Debug files
 *.dSYM/
 *.su
@@ -54,7 +58,7 @@ dkms.conf
 # ctags
 tags
 
-# cmake
+# CMake
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -68,6 +72,11 @@ CTestTestfile.cmake
 _deps
 Makefile
 DartConfiguration.tcl
+
+# CPack
+CPackConfig.cmake
+CPackSourceConfig.cmake
+_CPack_Packages/
 
 # custom
 bin/

@@ -1,7 +1,6 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.0)
 
-# projectname is the same as the main-executable
-project(ttetris)
+project(tetris-mint)
 
 add_definitions('-g')
 add_definitions('-Wall')
@@ -13,7 +12,7 @@ find_package(Curses)
 
 set(ADDITIONAL_LIBRARIES form menu)
 
-list(APPEND ttetris_SOURCES
+list(APPEND tetrismint_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/tetris_game.c
     ${CMAKE_CURRENT_LIST_DIR}/client_conn.c
     ${CMAKE_CURRENT_LIST_DIR}/controller.c
@@ -26,18 +25,26 @@ list(APPEND ttetris_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/widgets.c
 )
 
-add_library(ttetrislib OBJECT ${ttetris_SOURCES} log.h log.c party.c party.h event.c event.h)
+add_library(tetrismintlib OBJECT ${tetrismint_SOURCES} log.h log.c party.c party.h event.c event.h)
 
 add_executable(solo_main solo_main.c tetris_game.c)
-add_executable(client client.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(server server.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_render test_render.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_client_conn test_client_conn.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_player test_player.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(tetris-mint client.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(tetris-mint-server server.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_render test_render.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_client_conn test_client_conn.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_player test_player.c $<TARGET_OBJECTS:tetrismintlib>)
 
 target_link_libraries(solo_main ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
-target_link_libraries(client ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
-target_link_libraries(server ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(tetris-mint ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(tetris-mint-server ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
 target_link_libraries(test_render ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
 target_link_libraries(test_client_conn ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
 target_link_libraries(test_player ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
+install(
+    TARGETS tetris-mint
+    RUNTIME DESTINATION bin
+)
+install(
+    TARGETS tetris-mint-server
+    RUNTIME DESTINATION bin
+)
