@@ -1,6 +1,6 @@
 /*
  * tetris-game.c
- * Copyright (C) 2019 nitepone <admin@night.horse>
+ * Copyright (C) 2019-2021 nitepone <admin@night.horse>
  *
  * Distributed under terms of the MIT license.
  */
@@ -30,7 +30,7 @@ int destroy_game(struct game_contents **game_contents) {
 /*
  * Destroys an active_block and frees memory
  */
-int destroy_block(struct active_block **block) {
+static int destroy_block(struct active_block **block) {
 	struct active_block *ab_temp;
 	if (!(*block)) // NULL catch
 		return -1;
@@ -43,19 +43,20 @@ int destroy_block(struct active_block **block) {
 /*
  * Generates a block at the top of the game board
  */
-int spawn_active_block(struct active_block **block, enum block_type type) {
+static int spawn_active_block(struct active_block **block,
+                              struct tetris_block tetris_block) {
 	// allocate and fill
-	(*block)->block_type = type;
+	(*block)->tetris_block = tetris_block;
 	(*block)->position = ((struct position)BLOCK_START_POSITION);
 	(*block)->rotation = none;
 	return 0;
 }
 
-int generate_new_block(struct game_contents *game_contents) {
+static int generate_new_block(struct game_contents *game_contents) {
+	int rng = rand_r(&(game_contents)->seed) % ARRAY_SIZE(available_blocks);
 	spawn_active_block(&game_contents->active_block,
 	                   game_contents->next_block);
-	game_contents->next_block =
-	    rand_r(&game_contents->seed) % BLOCK_TYPE_COUNT;
+	game_contents->next_block = available_blocks[rng];
 	return 0;
 }
 
@@ -68,15 +69,17 @@ int new_seeded_game(struct game_contents **game_contents, unsigned int seed) {
 	// allocate new memory
 	*game_contents = calloc(1, sizeof(**game_contents));
 	(*game_contents)->active_block = calloc(1, sizeof(struct active_block));
+	(*game_contents)->shadow_block = calloc(1, sizeof(struct active_block));
 	// set values
 	(*game_contents)->seed = seed;
 	(*game_contents)->auto_lower_count = 0;
 	(*game_contents)->swap_h_block_count = 0;
-	(*game_contents)->hold_block = NO_BLOCK_VAL;
+	(*game_contents)->hold_block = tetris_block_null;
 	(*game_contents)->lines_cleared = 0;
 	(*game_contents)->points = 0;
 	(*game_contents)->next_block =
-	    rand_r(&(*game_contents)->seed) % BLOCK_TYPE_COUNT;
+	    available_blocks[rand_r(&(*game_contents)->seed) %
+	                     ARRAY_SIZE(available_blocks)];
 	generate_new_block(*game_contents);
 	return 0;
 }
@@ -94,12 +97,12 @@ int new_game(struct game_contents **game_contents) {
  *
  * This rotates differently due to the "+ 1" when calculating the offsets
  */
-int get_ec_block_pos(struct active_block *block) {
+static int get_ec_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+	for (i = 0; i < block->tetris_block.cell_count; i++) {
 		// get one offset
-		cur_offset_pos = block_offsets[block->block_type][i];
+		cur_offset_pos = block->tetris_block.position_offsets[i];
 		// rotate
 		switch (block->rotation) {
 		case none:
@@ -129,12 +132,12 @@ int get_ec_block_pos(struct active_block *block) {
 /*
  * Gets "block centric" block positions based on offsets and rotation
  */
-int get_bc_block_pos(struct active_block *block) {
+static int get_bc_block_pos(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+	for (i = 0; i < block->tetris_block.cell_count; i++) {
 		// get one offset
-		cur_offset_pos = block_offsets[block->block_type][i];
+		cur_offset_pos = block->tetris_block.position_offsets[i];
 		// rotate
 		switch (block->rotation) {
 		case none:
@@ -165,19 +168,16 @@ int get_bc_block_pos(struct active_block *block) {
  * This should direct blocks that are drawn using unit relational drawing
  * and special blocks to their associated functions.
  */
-int get_block_positions(struct active_block *block) {
-	switch (block->block_type) {
-	// standard blocks
-	case orange:
-	case blue:
-	case cleve:
-	case rhode:
-	case teewee:
-		return get_bc_block_pos(block);
+static int get_block_positions(struct active_block *block) {
+	switch (block->tetris_block.rotation_type) {
 	// special blocks
-	case smashboy:
-	case hero:
+	case corner_based:
 		return get_ec_block_pos(block);
+	// standard blocks
+	case center_based:
+		return get_bc_block_pos(block);
+	default:
+		return -1;
 	}
 	return 0;
 }
@@ -185,8 +185,8 @@ int get_block_positions(struct active_block *block) {
 /*
  * Tests if a block can be placed in the current location
  */
-int test_block(struct game_contents *game_contents,
-               struct active_block *new_block) {
+static int test_block(struct game_contents *gc,
+                      struct active_block *new_block) {
 	int i;
 	struct position cur_unit_pos;
 	// catch NULL block
@@ -194,19 +194,19 @@ int test_block(struct game_contents *game_contents,
 		return -1;
 	get_block_positions(new_block);
 	// test each pos
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+	for (i = 0; i < gc->active_block->tetris_block.cell_count; i++) {
 		cur_unit_pos = new_block->board_units[i];
 		if (cur_unit_pos.x < 0 || cur_unit_pos.x >= BOARD_WIDTH ||
 		    cur_unit_pos.y < 0 || cur_unit_pos.y >= BOARD_HEIGHT ||
-		    game_contents->board[cur_unit_pos.y][cur_unit_pos.x]) {
+		    gc->board[cur_unit_pos.y][cur_unit_pos.x]) {
 			return -2;
 		}
 	}
 	return 0;
 }
 
-int clone_block(struct active_block *old_block,
-                struct active_block **new_block) {
+static int clone_block(struct active_block *old_block,
+                       struct active_block **new_block) {
 	if (!old_block) // NULL catch
 		return -1;
 	*new_block = calloc(1, sizeof(*old_block));
@@ -214,7 +214,7 @@ int clone_block(struct active_block *old_block,
 	return 0;
 }
 
-int delete_line(int line_number, struct game_contents *game_contents) {
+static int delete_line(int line_number, struct game_contents *game_contents) {
 	int j, i;
 	for (j = (line_number + 1); j < BOARD_HEIGHT; j++) {
 		for (i = 0; i < BOARD_WIDTH; i++) {
@@ -225,7 +225,7 @@ int delete_line(int line_number, struct game_contents *game_contents) {
 	return 0;
 }
 
-int cull_lines(struct game_contents *game_contents) {
+static int cull_lines(struct game_contents *game_contents) {
 	int i, j, units_in_row;
 	int lines_culled = 0;
 	// iterate and count each row/line
@@ -279,45 +279,48 @@ int game_over(struct game_contents *game_contents) {
 	return 0;
 }
 
-int place_block(struct game_contents *game_contents) {
+static int place_block(struct game_contents *gc) {
 	int i;
 	struct position cur_unit_pos;
-	get_block_positions(game_contents->active_block);
+	get_block_positions(gc->active_block);
 	// merge block into board array
-	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
-		cur_unit_pos = game_contents->active_block->board_units[i];
-		game_contents->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)game_contents->active_block->block_type + 1);
+	for (i = 0; i < gc->active_block->tetris_block.cell_count; i++) {
+		cur_unit_pos = gc->active_block->board_units[i];
+		gc->board[cur_unit_pos.y][cur_unit_pos.x] =
+		    ((int)gc->active_block->tetris_block.type);
 	}
 	// check for lines
-	cull_lines(game_contents);
+	cull_lines(gc);
 	// check for game over
-	if (game_over(game_contents))
+	if (game_over(gc))
 		return 2;
-	generate_new_block(game_contents);
-	game_contents->swap_h_block_count = 0;
+	generate_new_block(gc);
+	gc->swap_h_block_count = 0;
 	return 0;
 }
 
-int translate_block(int rightward, struct game_contents *game_contents) {
+static int translate_block_helper(struct game_contents *gc, int distance) {
 	struct active_block *new_block = NULL;
-	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
+	clone_block(gc->active_block, &new_block);
 	// perform translation
-	if (rightward)
-		new_block->position.x++;
-	else
-		new_block->position.x--;
+	new_block->position.x += distance;
 	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
-		destroy_block(&temp_block_p);
+	if (!test_block(gc, new_block)) {
+		gc->active_block->position = new_block->position;
+		destroy_block(&new_block);
 		return 0;
 	} else {
 		destroy_block(&new_block);
 		return -1;
 	}
+}
+
+int translate_block_right(struct game_contents *gc) {
+	return translate_block_helper(gc, -1);
+}
+
+int translate_block_left(struct game_contents *gc) {
+	return translate_block_helper(gc, 1);
 }
 
 int rotate_block(int clockwise, struct game_contents *game_contents) {
@@ -343,37 +346,51 @@ int rotate_block(int clockwise, struct game_contents *game_contents) {
 	}
 }
 
-int lower_block(int auto_drop, struct game_contents *game_contents) {
+static int lower_block_helper(struct game_contents *gc,
+                              struct active_block *block) {
 	struct active_block *new_block = NULL;
-	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
+	clone_block(block, &new_block);
 	// perform transform
 	new_block->position.y--;
 	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
-		destroy_block(&temp_block_p);
+	if (!test_block(gc, new_block)) {
+		block->position = new_block->position;
+		destroy_block(&new_block);
 		return -1;
+	} else {
+		// destroy translated block
+		destroy_block(&new_block);
+		return 0;
 	}
+}
 
-	// destroy translated block
-	destroy_block(&new_block);
+int lower_block(int auto_drop, struct game_contents *gc) {
+	int ret = 0;
+	ret = lower_block_helper(gc, gc->active_block);
+	if (ret) {
+		return ret;
+	}
 	// handle placing block if needed
 	if (!auto_drop) {
-		return place_block(game_contents);
+		return place_block(gc);
 	} else {
-		if (game_contents->auto_lower_count++ >= MAX_AUTO_LOWER)
-			return place_block(game_contents);
+		if (gc->auto_lower_count++ >= MAX_AUTO_LOWER)
+			return place_block(gc);
 	}
 	return -1;
 }
 
 int hard_drop(struct game_contents *gc) {
-	int ret = 0;
-	while (((ret = lower_block(0, gc)) < 0))
+	while (lower_block_helper(gc, gc->active_block))
 		;
-	return ret;
+	return place_block(gc);
+}
+
+int generate_shadow_block(struct game_contents *gc) {
+	clone_block(gc->active_block, &(gc->shadow_block));
+	while (lower_block_helper(gc, gc->shadow_block))
+		;
+	return 0;
 }
 
 int generate_game_view_data(struct game_view_data **gvd,
@@ -387,39 +404,56 @@ int generate_game_view_data(struct game_view_data **gvd,
 	memcpy((*gvd)->board, gc->board,
 	       sizeof(int) * BOARD_WIDTH * BOARD_HEIGHT);
 
-	// draw current piece on gvd
+	generate_shadow_block(gc);
 	get_block_positions(gc->active_block);
+	get_block_positions(gc->shadow_block);
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
+		// draw shadow_block to board
+		cur_unit_pos = gc->shadow_block->board_units[i];
+		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
+		    ((int)(enum block_type)shadow);
+		// draw active_block to board
 		cur_unit_pos = gc->active_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
-		    ((int)gc->active_block->block_type) + 1;
+		    ((int)gc->active_block->tetris_block.type);
 	}
 	// save scores into gvd
 	(*gvd)->lines_cleared = gc->lines_cleared;
 	(*gvd)->points = gc->points;
 	// save next and hold blocks
-	(*gvd)->hold_block = gc->hold_block;
-	(*gvd)->next_block = gc->next_block;
-
+	(*gvd)->hold_block = gc->hold_block.type;
+	(*gvd)->next_block = gc->next_block.type;
 	return 0;
 }
 
 int swap_hold_block(struct game_contents *gc) {
-	enum block_type active_type;
+	struct tetris_block active_type;
 
 	// catch too many swaps between block placement
 	if (gc->swap_h_block_count >= MAX_SWAP_H)
 		return -1;
 
-	if (gc->hold_block == NO_BLOCK_VAL) {
-		gc->hold_block = gc->active_block->block_type;
+	if (gc->hold_block.type == no_type) {
+		gc->hold_block = gc->active_block->tetris_block;
 		generate_new_block(gc);
 	} else {
 		active_type = gc->hold_block;
-		gc->hold_block = gc->active_block->block_type;
+		gc->hold_block = gc->active_block->tetris_block;
 		spawn_active_block(&gc->active_block, active_type);
 	}
 
 	gc->swap_h_block_count++;
 	return 0;
 };
+
+int get_tetris_block_offsets(const struct position **offset,
+                             enum block_type type) {
+	int i;
+	for (i = 0; i < ARRAY_SIZE(available_blocks); i++) {
+		if (type == available_blocks[i].type) {
+			*offset = available_blocks[i].position_offsets;
+			return available_blocks[i].cell_count;
+		}
+	}
+	return -1;
+}

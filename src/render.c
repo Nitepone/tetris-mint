@@ -221,13 +221,14 @@ void render_init(int n, char *names[]) {
 
 	// create numbered fg/bg pairs to be used by the COLOR_PAIR macro later
 	init_pair(0, COLOR_WHITE, COLOR_WHITE);
-	init_pair(1, COLOR_CYAN, COLOR_CYAN);
-	init_pair(2, COLOR_RED, COLOR_RED);
-	init_pair(3, COLOR_GREEN, COLOR_GREEN);
-	init_pair(4, COLOR_YELLOW, COLOR_YELLOW);
-	init_pair(5, COLOR_BLUE, COLOR_BLUE);
-	init_pair(6, COLOR_MAGENTA, COLOR_MAGENTA);
-	init_pair(7, COLOR_CYAN, COLOR_CYAN);
+	init_pair(shadow, COLOR_CYAN, COLOR_CYAN);
+	init_pair(orange, COLOR_RED, COLOR_RED);
+	init_pair(blue, COLOR_BLUE, COLOR_GREEN);
+	init_pair(cleve, COLOR_GREEN, COLOR_GREEN);
+	init_pair(rhode, COLOR_YELLOW, COLOR_YELLOW);
+	init_pair(teewee, COLOR_MAGENTA, COLOR_MAGENTA);
+	init_pair(hero, COLOR_CYAN, COLOR_CYAN);
+	init_pair(smashboy, COLOR_WHITE, COLOR_WHITE);
 
 	// set the static variable for this module
 	nboards = n;
@@ -292,6 +293,9 @@ void render_close(void) { render_ingame_cleanup(); }
 static void render_cell(WINDOW *win, int row, int col, short color) {
 	for (int i = 1; i <= CELL_WIDTH; i++)
 		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+	// Handle Shadow Block
+	if (color == shadow)
+		color = 8;
 	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
 	         NULL);
 }
@@ -342,13 +346,15 @@ static struct position rotate_position(struct position pos, enum rotation rot) {
  */
 static void render_tetris_piece(WINDOW *win, enum block_type piece,
                                 enum rotation rot, struct position pos) {
-	if (piece < 0 || piece >= BLOCK_TYPE_COUNT)
-		return;
 	struct position cell_offset;
-	for (int i = 0; i < MAX_BLOCK_UNITS; i++) {
-		cell_offset = rotate_position(block_offsets[piece][i], rot);
+	const struct position *offsets;
+	int cell_count = get_tetris_block_offsets(&offsets, piece);
+	if (cell_count <= 0)
+		return;
+	for (int i = 0; i < cell_count; i++) {
+		cell_offset = rotate_position(offsets[i], rot);
 		render_cell(win, pos.y - cell_offset.y, pos.x + cell_offset.x,
-		            piece + 1);
+		            piece);
 	}
 }
 

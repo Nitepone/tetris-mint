@@ -22,7 +22,11 @@ static int renderish(int fd, Player *player) {
 }
 
 static void offline_translate(void *context, int x) {
-	translate_block(x, offline_player->contents);
+	if (x) {
+		translate_block_left(offline_player->contents);
+	} else {
+		translate_block_right(offline_player->contents);
+	}
 	renderish(0, offline_player);
 }
 
