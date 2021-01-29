@@ -71,3 +71,9 @@ DartConfiguration.tcl
 
 # custom
 bin/
+
+# JetBrains
+.idea
+
+# codeblocks solution file
+*.cbp
