@@ -74,9 +74,6 @@ void *player_lobby(void *_net_client) {
 		online_usernames = tetris_list(net_client);
 	};
 
-	// null terminate the string array
-	string_array_resize(online_usernames, online_usernames->length + 1);
-
 	WidgetSelection *selection = ttviz_select(
 	    online_usernames->strings, online_usernames->length, "Opponent", 0);
 	StringArray *opponents = selection_to_string_array(selection);
