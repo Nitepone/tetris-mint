@@ -305,8 +305,10 @@ void render_close(void) { render_ingame_cleanup(); }
  *              the COLOR_PAIR macro
  */
 static void render_cell(WINDOW *win, int row, int col, short color) {
+	char cell_char =
+	    row == BOARD_HEIGHT - BOARD_PLAY_HEIGHT - 1 ? '_' : ' ';
 	for (int i = 1; i <= CELL_WIDTH; i++)
-		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, cell_char);
 	// Handle Shadow Block
 	if (color == shadow)
 		color = 8;
