@@ -303,8 +303,11 @@ void render_close(void) { render_ingame_cleanup(); }
  * @param col   index of column
  * @param color color-pair index as passed to ncurses init_pair and used with
  *              the COLOR_PAIR macro
+ * @param is_death_line any number other than 0 indicates that this is not part
+ *              of the death line
  */
-static void render_cell(WINDOW *win, int row, int col, short color) {
+static void render_cell(WINDOW *win, int row, int col, short color,
+                        int is_death_line) {
 	int i;
 	// render shadow block
 	if (color == shadow) {
@@ -328,7 +331,8 @@ static void render_cell(WINDOW *win, int row, int col, short color) {
 	// render normal block
 	else {
 		for (i = 1; i <= CELL_WIDTH; i++)
-			mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+			mvwaddch(win, 1 + row, i + col * CELL_WIDTH,
+			         is_death_line ? '_' : ' ');
 		mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0,
 		         color, NULL);
 	}
@@ -388,7 +392,7 @@ static void render_tetris_piece(WINDOW *win, enum block_type piece,
 	for (int i = 0; i < cell_count; i++) {
 		cell_offset = rotate_position(offsets[i], rot);
 		render_cell(win, pos.y - cell_offset.y, pos.x + cell_offset.x,
-		            piece);
+		            piece, 0);
 	}
 }
 
@@ -431,7 +435,7 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 	for (r = 0; r < BOARD_HEIGHT; r++)
 		for (c = 0; c < BOARD_WIDTH; c++)
 			render_cell(tetris_window, BOARD_HEIGHT - r - 1, c,
-			            board[r][c]);
+			            board[r][c], r == BOARD_PLAY_HEIGHT);
 
 	box(tetris_window, 0, 0);
 	wnoutrefresh(tetris_window);
