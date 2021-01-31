@@ -1,7 +1,10 @@
 #ifndef _RENDER_HEADER
 #define _RENDER_HEADER
 
-#include <ncurses.h>
+// Before including curses, undefine MOUSE_MOVED if provided by windows.h
+// TODO look for a more elegant solution
+#undef MOUSE_MOVED
+#include <curses.h>
 
 #include "tetris_game.h"
 

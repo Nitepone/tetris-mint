@@ -155,6 +155,7 @@ int curses_text_field_feed(struct curses_text_entry *entry, int input) {
 		if (entry->entered_text[entry->cursor_position] != 0)
 			entry->cursor_position++;
 		break;
+	case 8: // case 8 is required for backspace on windows
 	case KEY_BACKSPACE:
 		curses_text_field_delete(entry);
 		break;

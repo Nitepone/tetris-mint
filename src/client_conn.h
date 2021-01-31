@@ -1,6 +1,10 @@
 #ifndef _CLIENT_CONN_H
 #define _CLIENT_CONN_H
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include <winsock.h>
+#endif
+
 #include <sys/types.h>
 
 #include "controller.h"
@@ -13,7 +17,7 @@ typedef struct ttetris_netclient NetClient;
 
 struct ttetris_netclient {
 	/* the current file descriptor */
-	int fd;
+	SOCKET fd;
 	// mark whether the listening thread is running. There is no "undefined"
 	// value to store for pthread_t, so we need this.
 	char is_listen_thread_started;
@@ -34,18 +38,15 @@ struct ttetris_netrequest {
 	short id;
 	/* pointer to response content */
 	char *cursor;
-	/* flag to indicate that we got a response to our request */
-	int ready_flag;
-	/* mutex for the ready flag */
-	pthread_mutex_t ready_mutex;
-	pthread_cond_t ready_cond;
+	// event indicating when we hear back from the server
+	TetrisEvent *response_event;
 };
 
 /**
  * send a message to the server using the given client connection
  */
-NetRequest *ttetris_net_request(NetClient *client, char *bytes,
-                                u_int16_t nbytes, msg_type_t message_type);
+NetRequest *ttetris_net_request(NetClient *client, char *bytes, uint16_t nbytes,
+                                msg_type_t message_type);
 
 /**
  * set the response for a given net request

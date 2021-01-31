@@ -1,5 +1,5 @@
 #include "controller.h"
-#include <ncurses.h>
+#include <curses.h>
 
 void keyboard_input_loop(TetrisControlSet controls, void *context) {
 	char ch;

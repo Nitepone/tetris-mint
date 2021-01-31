@@ -1,5 +1,5 @@
 /**
- * simple library for describing events and waiting for events
+ * simple cross-platform library for describing events and waiting for events
  */
 
 #ifndef TTETRIS_EVENT_H

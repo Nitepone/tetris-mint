@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "os_compat.h"
 #include "tetris_game.h"
 
 /*
