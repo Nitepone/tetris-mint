@@ -27,7 +27,7 @@ void usage() {
 /**
  * run an offline game of tetris
  */
-int run_offline() {
+int run_offline(ControlKeybindings keybindings) {
 	// initialize the player list
 	player_init();
 
@@ -38,7 +38,7 @@ int run_offline() {
 	player_game_start(player);
 
 	render_init(1, names);
-	keyboard_input_loop(offline_control_set(player), NULL);
+	keyboard_input_loop(offline_control_set(player), keybindings, NULL);
 
 	player_game_stop(player);
 	render_close();
@@ -92,7 +92,7 @@ void *player_lobby(void *_net_client) {
 /**
  * run an online game of tetris
  */
-int run_online(char *host, int port) {
+int run_online(ControlKeybindings keybindings, char *host, int port) {
 	fprintf(logging_fp, "run_online(%s, %d)\n", host, port);
 	// initialize the player list
 	player_init();
@@ -142,7 +142,7 @@ int run_online(char *host, int port) {
 	pthread_cancel(_thread);
 
 	// create the renderer and start the input loop
-	keyboard_input_loop(tcp_control_set(), net_client);
+	keyboard_input_loop(tcp_control_set(), keybindings, net_client);
 
 	render_close();
 
@@ -159,6 +159,8 @@ int main_menu(char *host, int port) {
 	char *choices[] = {
 	    "Single", "Multi", "Controls", "Exit", (char *)NULL,
 	};
+
+	ControlKeybindings keybindings = default_keybindings();
 
 	while (1) {
 		// TODO We shouldn't need to be calling all this setup
@@ -178,13 +180,13 @@ int main_menu(char *host, int port) {
 
 		switch (selected_choice) {
 		case 0:
-			run_offline();
+			run_offline(keybindings);
 			break;
 		case 1:
-			run_online(host, port);
+			run_online(keybindings, host, port);
 			break;
 		case 2:
-			// TODO Implement the keybindings / controls menu (#21)
+			edit_keybindings(&keybindings);
 			break;
 		case 3:
 			return EXIT_SUCCESS;

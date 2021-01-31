@@ -1,6 +1,7 @@
 #ifndef TTETRIS_WIDGETS_H
 #define TTETRIS_WIDGETS_H
 
+#include "controller.h"
 #include "generic.h"
 
 typedef struct ttetris_widget_selection WidgetSelection;
@@ -19,5 +20,6 @@ void selection_destroy(WidgetSelection *selection);
 int ttviz_entry(char *user_input, char *label, int max_length);
 WidgetSelection *ttviz_select(char **options, int num_options, char *desc,
                               int is_single_selection);
+int edit_keybindings(ControlKeybindings *keybindings);
 
 #endif // TTETRIS_WIDGETS_H
