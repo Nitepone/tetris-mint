@@ -8,17 +8,17 @@
 
 #define UINT_TO_INT(n) n < 32767 ? (int)n : (n > 32768 ? -(int)-n : -32768)
 
-void ttviz_entry(char *username, char *label, int max_length) {
+int ttviz_entry(char *user_input, char *label, int max_length) {
 	int ch, _exit;
 	CursesTextEntry *entry;
 
 	erase();
 
-	mvprintw(2, 2, "Enter a Username:");
+	mvprintw(2, 2, label);
 
 	if ((_exit = curses_text_field_create(&entry, stdscr, 3, 20, 3, 1,
 	                                      max_length)) != EXIT_SUCCESS)
-		exit(_exit);
+		return _exit;
 	curses_text_field_refresh(entry);
 
 	while ((ch = getch()) != '\n') {
@@ -26,9 +26,11 @@ void ttviz_entry(char *username, char *label, int max_length) {
 		curses_text_field_refresh(entry);
 	}
 
-	strncpy(username, curses_text_field_value(entry), 7);
+	strncpy(user_input, curses_text_field_value(entry), max_length);
 
 	curses_text_field_destroy(entry);
+
+	return EXIT_SUCCESS;
 }
 
 struct ttetris_widget_selection {

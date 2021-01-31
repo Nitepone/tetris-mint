@@ -9,7 +9,14 @@ int selection_to_index(WidgetSelection *selection);
 StringArray *selection_to_string_array(WidgetSelection *selection);
 void selection_destroy(WidgetSelection *selection);
 
-void ttviz_entry(char *username, char *label, int max_length);
+/**
+ * full-screen synchronous text entry using curses
+ * @param user_input pointer to buffer where the entered text will be written
+ * @param label text to display to user above the input field
+ * @param max_length size of the user_input buffer
+ * @return EXIT_SUCCESS or EXIT_FAILURE
+ */
+int ttviz_entry(char *user_input, char *label, int max_length);
 WidgetSelection *ttviz_select(char **options, int num_options, char *desc,
                               int is_single_selection);
 
