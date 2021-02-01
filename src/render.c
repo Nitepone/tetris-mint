@@ -306,10 +306,11 @@ void render_close(void) { render_ingame_cleanup(); }
  */
 static void render_cell(WINDOW *win, int row, int col, short color) {
 	int i;
-	// Reset Cell
-	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, -1, NULL);
 	// render shadow block
 	if (color == shadow) {
+		// reset cell
+		mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, -1,
+		         NULL);
 		// handle narrow boards
 		if (CELL_WIDTH == 1) {
 			mvwaddch(win, 1 + row, 1 + col * CELL_WIDTH, '#');
