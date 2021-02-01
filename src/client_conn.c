@@ -1,13 +1,20 @@
+
 #include <inttypes.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "os_compat.h"
+#ifdef THIS_IS_WINDOWS
+#include <winsock.h>
+#else
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 
 #include "client_conn.h"
 #include "event.h"
@@ -21,9 +28,11 @@
 
 /**
  * Borrowed from GNU Socket Tutorial
+ *
+ * @return EXIT_SUCCESS or EXIT_FAILURE
  */
-static void init_sockaddr(struct sockaddr_in *name, const char *hostname,
-                          uint16_t port) {
+static int init_sockaddr(struct sockaddr_in *name, const char *hostname,
+                         uint16_t port) {
 	struct hostent *hostinfo;
 
 	name->sin_family = AF_INET;
@@ -31,9 +40,11 @@ static void init_sockaddr(struct sockaddr_in *name, const char *hostname,
 	hostinfo = gethostbyname(hostname);
 	if (hostinfo == NULL) {
 		fprintf(logging_fp, "Unknown host %s.\n", hostname);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	name->sin_addr = *(struct in_addr *)hostinfo->h_addr;
+
+	return EXIT_SUCCESS;
 }
 
 void tetris_send_message(NetClient *net_client, char *body,
@@ -46,12 +57,23 @@ void tetris_send_message(NetClient *net_client, char *body,
  * get socket or exit if an error occurs
  */
 int get_socket() {
+#ifdef THIS_IS_WINDOWS
+	WSADATA wsaData;
+	int startup_result;
+	// perform the required initialization for winsock
+	if ((startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
+		fprintf(logging_fp, "WSAStartup failed with error: %d\n",
+		        startup_result);
+		return EXIT_FAILURE;
+	}
+#endif
+
 	int sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock >= 0)
 		return sock;
 
 	perror("socket (client)");
-	exit(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }
 
 static void tetris_translate(void *net_client, int x) {
@@ -103,7 +125,7 @@ int tetris_connect(NetClient *net_client, char *host, int port) {
 	struct sockaddr_in servername;
 
 	/* Create the socket. */
-	int sock_fd = get_socket();
+	SOCKET sock_fd = get_socket();
 
 	/* Connect to the server. */
 	init_sockaddr(&servername, host, port);
@@ -160,28 +182,32 @@ static int read_game_view_data(char *buffer, struct game_view_data *view) {
 }
 
 void ttetris_net_request_complete(NetRequest *request) {
-	pthread_mutex_lock(&request->ready_mutex);
-	request->ready_flag = 1;
-	pthread_cond_broadcast(&request->ready_cond);
-	pthread_mutex_unlock(&request->ready_mutex);
+	fprintf(logging_fp, "ttetris_net_request_complete\n");
+	ttetris_event_mark_complete(request->response_event);
 };
 
 int read_from_server(NetClient *net_client) {
 	Blob *blob;
 	char buffer[MAXMSG];
 
+	fprintf(logging_fp, "read_from_server: called\n");
+
 	// remember that more than one TCP packet may be read by this command
-	int nbytes = read(net_client->fd, buffer, MAXMSG);
+	int nbytes = recv(net_client->fd, buffer, MAXMSG, 0);
 
-	// exit early if there was an error
-	if (nbytes < 0) {
-		perror("read");
-		return EXIT_FAILURE;
-	}
-
-	// exit early if we reached the end-of-file
-	if (nbytes == 0)
+	if (nbytes == 0) {
+		// exit early if we reached the end-of-file
+		fprintf(logging_fp, "read_from_server: received EOF\n");
 		return -1;
+	} else if (nbytes < 0) {
+		// exit early if there was an error
+		char errmsg[256];
+		last_error_message_to_buffer(errmsg, 256);
+		fprintf(logging_fp, "read_from_server: %s\n", errmsg);
+		return EXIT_FAILURE;
+	} else {
+		fprintf(logging_fp, "read_from_server read %d bytes\n", nbytes);
+	}
 
 	// initialize pointers for moving through data
 	char *end = buffer + nbytes;
@@ -195,9 +221,15 @@ int read_from_server(NetClient *net_client) {
 		// that in the future.
 		if (header->magic_number != MSG_MAGIC_NUMBER) {
 			fprintf(logging_fp,
-			        "read_from_server: incorrect magic number");
+			        "read_from_server: incorrect magic number\n");
 			return EXIT_SUCCESS;
 		}
+
+		fprintf(logging_fp,
+		        "read_from_server: message type=%s request_id=%d "
+		        "content_length=%d\n",
+		        message_type_to_str(header->message_type),
+		        header->request_id, header->content_length);
 
 		// increment the cursor to the start of the message body
 		cursor += sizeof(MessageHeader);
@@ -241,6 +273,8 @@ int read_from_server(NetClient *net_client) {
 			NetRequest *request;
 			for (int i = 0; i < net_client->open_requests->length;
 			     i++) {
+				fprintf(logging_fp,
+				        "checking for responses %d\n", i);
 				request = (NetRequest *)list_get(
 				    net_client->open_requests, i);
 				if (request->id == header->request_id) {
@@ -290,6 +324,7 @@ void tetris_listen(NetClient *net_client) {
 }
 
 NetClient *net_client_init() {
+	fprintf(logging_fp, "net_client_init()\n");
 	NetClient *net_client = malloc(sizeof(NetClient));
 	net_client->is_listen_thread_started = 0;
 	net_client->fd = -1;
@@ -299,15 +334,13 @@ NetClient *net_client_init() {
 	return net_client;
 };
 
-NetRequest *ttetris_net_request(NetClient *client, char *bytes,
-                                u_int16_t nbytes, msg_type_t message_type) {
+NetRequest *ttetris_net_request(NetClient *client, char *bytes, uint16_t nbytes,
+                                msg_type_t message_type) {
 	NetRequest *request = malloc(sizeof(NetRequest));
 	// TODO Stop using the number of requests sent as the ID. Of course, we
 	// also want to be able to delete requests from this list at some point.
 	request->id = client->open_requests->length + 1;
-	request->ready_flag = 0;
-	pthread_cond_init(&request->ready_cond, NULL);
-	pthread_mutex_init(&request->ready_mutex, NULL);
+	request->response_event = ttetris_event_create();
 
 	// IMPORTANT: list_append must be called before message_nbytes to avoid
 	// a race condition
@@ -319,11 +352,7 @@ NetRequest *ttetris_net_request(NetClient *client, char *bytes,
 };
 
 void ttetris_net_request_block_for_response(NetRequest *request) {
-	pthread_mutex_lock(&request->ready_mutex);
-	while (!request->ready_flag) {
-		pthread_cond_wait(&request->ready_cond, &request->ready_mutex);
-	}
-	pthread_mutex_unlock(&request->ready_mutex);
+	ttetris_event_block_for_completion(request->response_event);
 }
 
 // define a control set for use over TCP

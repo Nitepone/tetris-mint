@@ -1,33 +1,60 @@
-#include <arpa/inet.h>
-#include <asm/socket.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
+
 #include <unistd.h>
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#define THIS_IS_WINDOWS
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#else
+#include <arpa/inet.h>
+#include <asm/socket.h>
+#include <netinet/in.h>
+#include <sys/select.h>
+#endif
 
 #include "list.h"
 #include "log.h"
 #include "message.h"
+#include "os_compat.h"
 #include "player.h"
 
 /**
- * get and bind a socket or exit on failure
+ * get and bind a socket
+ * @param host string IP address
+ * @param port numeric port
+ * @return EXIT_SUCCESS or EXIT_FAILURE
  */
 int make_socket(char *host, uint16_t port) {
 	int sock;
 	struct sockaddr_in name;
 
+#ifdef THIS_IS_WINDOWS
+	WSADATA wsaData;
+	int startup_result;
+	// perform the required initialization for winsock
+	if ((startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
+		fprintf(logging_fp, "WSAStartup failed with error: %d\n",
+		        startup_result);
+		return EXIT_FAILURE;
+	}
+#endif
+
 	// get a socket
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		perror("socket");
+		char errmsg[256];
+		last_error_message_to_buffer(errmsg, 256);
+		fprintf(stderr, errmsg);
 		exit(EXIT_FAILURE);
 	}
 
+#ifdef THIS_IS_NOT_WINDOWS
 	// forcefully attaching socket to the port
 	int opt = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
@@ -35,15 +62,27 @@ int make_socket(char *host, uint16_t port) {
 		perror("setsockopt");
 		exit(EXIT_FAILURE);
 	}
+#endif
 
-	/* Give the socket a name. */
+	// Give the socket a name.
 	name.sin_family = AF_INET;
 	name.sin_port = htons(port);
+
+#ifdef THIS_IS_WINDOWS
+	WSAStringToAddress((LPSTR)host, AF_INET, NULL, (LPSOCKADDR)&name,
+	                   (LPINT)sizeof(name));
+#else
 	inet_pton(AF_INET, host, &name.sin_addr.s_addr);
+
+#endif
+
 	if (bind(sock, (struct sockaddr *)&name, sizeof(name)) < 0) {
 		perror("bind");
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
+
+	fprintf(logging_fp, "make_socket: binding successful to %s:%d\n", host,
+	        port);
 
 	return sock;
 }
@@ -71,16 +110,17 @@ static void tell_party_that_the_game_started(TetrisParty *party) {
 /**
  * Returns -1 if EOF is received or 0 otherwise.
  */
-int read_from_client(int filedes) {
+int read_from_client(SOCKET filedes) {
 	char buffer[MAXMSG];
 	Blob *blob;
 
 	// remember that more than one TCP packet may be read by this command
-	int nbytes = read(filedes, buffer, MAXMSG);
+	//	int nbytes = read(filedes, buffer, MAXMSG);
+	int nbytes = recv(filedes, buffer, MAXMSG, 0);
 
 	// exit early if there was an error
 	if (nbytes < 0) {
-		perror("read");
+		perror("read_from_client: read");
 		exit(EXIT_FAILURE);
 	}
 
@@ -252,12 +292,12 @@ int main(int argc, char *argv[]) {
 	// convert the string port to a number port
 	uintmax_t numeric_port = strtoumax(port, NULL, 10);
 	if (numeric_port == UINTMAX_MAX && errno == ERANGE) {
-		fprintf(stderr, "Provided port is invalid\n");
+		fprintf(logging_fp, "Provided port is invalid\n");
 		usage();
 	}
 
-	int sock;
-	fd_set active_fd_set, read_fd_set;
+	SOCKET sock;
+	fd_set active_fd_set;
 	int i;
 	struct sockaddr_in clientname;
 	size_t size;
@@ -269,54 +309,82 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	/* Initialize the set of active sockets. */
-	FD_ZERO(&active_fd_set);
-	FD_SET(sock, &active_fd_set);
+	fprintf(logging_fp, "main: Started listening\n");
+
+	// TODO What is the maximum number of sockets we can put in a file
+	//  descriptor set?
+	int max_sockets = 50;
+	SOCKET client_socket[max_sockets];
+	for (i = 0; i < max_sockets; i++)
+		client_socket[i] = 0;
 
 	/* Initialize the player list */
 	player_init();
 
 	while (1) {
-		/* Block until input arrives on one or more active sockets. */
-		read_fd_set = active_fd_set;
-		if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
+		// clear the socket fd set
+		FD_ZERO(&active_fd_set);
+
+		// add the main listening socket to our active set
+		FD_SET(sock, &active_fd_set);
+
+		// add (non-NULL) child sockets to the active fd set
+		for (i = 0; i < max_sockets; i++)
+			if (client_socket[i] > 0)
+				FD_SET(client_socket[i], &active_fd_set);
+
+		// Block until input arrives on one or more active sockets.
+		if (select(FD_SETSIZE, &active_fd_set, NULL, NULL, NULL) < 0) {
 			perror("select");
 			exit(EXIT_FAILURE);
 		}
 
-		/* Service all the sockets with input pending. */
-		for (i = 0; i < FD_SETSIZE; ++i) {
+		// service the listening socket
+		//
+		// for new connections:
+		// - accept the connection
+		// - create a file descriptor for the connection
+		// - add the file descriptor to the file descriptor set
+		if (FD_ISSET(sock, &active_fd_set)) {
+			size = sizeof(clientname);
+			SOCKET new =
+			    accept(sock, (struct sockaddr *)&clientname,
+			           (socklen_t *)&size);
+			if (new < 0) {
+				perror("accept");
+				exit(EXIT_FAILURE);
+			}
+			fprintf(logging_fp,
+			        "main: new connection from host %s, "
+			        "port %hu.\n",
+			        inet_ntoa(clientname.sin_addr),
+			        ntohs(clientname.sin_port));
+
+			FD_SET(new, &active_fd_set);
+
+			// put the socket in our manual list of sockets
+			for (i = 0; i < max_sockets; i++)
+				if (client_socket[i] == 0) {
+					client_socket[i] = new;
+					break;
+				}
+		}
+
+		// service all the sockets with previously accepted connections
+		// that have input pending
+		for (i = 0; i < max_sockets; i++) {
+			SOCKET s = client_socket[i];
+
 			// exit early if the file descriptor i is not in the set
-			if (!FD_ISSET(i, &read_fd_set))
+			if (!FD_ISSET(s, &active_fd_set))
 				continue;
 
-			// for new connections:
-			// - accept the connection
-			// - create a file descriptor for the connection
-			// - add the file descriptor to the file descriptor set
-			if (i == sock) {
-				size = sizeof(clientname);
-				int new =
-				    accept(sock, (struct sockaddr *)&clientname,
-				           (socklen_t *)&size);
-				if (new < 0) {
-					perror("accept");
-					exit(EXIT_FAILURE);
-				}
-				fprintf(stderr,
-				        "main: new connection from host %s, "
-				        "port %hu.\n",
-				        inet_ntoa(clientname.sin_addr),
-				        ntohs(clientname.sin_port));
-
-				FD_SET(new, &active_fd_set);
-			}
 			// handle data on sockets already in the file descriptor
 			// set
-			else if (read_from_client(i) < 0) {
-				fprintf(stderr, "main: received EOF\n");
+			if (read_from_client(s) < 0) {
+				fprintf(logging_fp, "main: received EOF\n");
 				close(i);
-				FD_CLR(i, &active_fd_set);
+				client_socket[i] = 0;
 			}
 		}
 	}

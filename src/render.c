@@ -1,14 +1,21 @@
-#include <asm/ioctls.h>
+#include <curses.h>
 #include <locale.h>
-#include <ncurses.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <time.h>
+
+#include "os_compat.h"
+#ifdef THIS_IS_WINDOWS
+#include <windows.h>
+#include <winsock.h>
+#else
+#include <asm/ioctls.h>
+#endif
 
 #include "log.h"
 #include "render.h"
+#include "terminal_size.h"
 #include "tetris_game.h"
 
 // width of the windows used to show the points, lines, next block, and hold
@@ -59,6 +66,8 @@ static void set_window(WINDOW **win, int height, int width, int starty,
 }
 
 void _render_refresh_layout(void) {
+	fprintf(logging_fp, "_render_refresh_layout nboards=%d\n", nboards);
+
 	if (nboards == 0)
 		return;
 	//
@@ -76,14 +85,13 @@ void _render_refresh_layout(void) {
 	// next user keypress. Until we find a good solution to that, option #3
 	// is working nicely. :)
 	//
-	struct winsize ws;
-	ioctl(0, TIOCGWINSZ, &ws);
+	TerminalSize term_size = get_terminal_size();
 	// Here, we call the "inner" resize_term function rather than the
 	// *recommended* "outer" resizeterm function. This is because in my
 	// testing, resizeterm was causing the next user keypress to get
 	// dropped, which is super annoying. There is probably another, better
 	// solution, but this works fine. :)
-	resize_term(ws.ws_row, ws.ws_col);
+	resize_term(term_size.rows, term_size.columns);
 
 	clear();
 
@@ -142,6 +150,7 @@ void _render_refresh_layout(void) {
 	dirty = false;
 }
 
+#ifdef THIS_IS_NOT_WINDOWS
 /**
  * This signal handler is just slightly different than the one that comes with
  * ncurses.
@@ -160,20 +169,21 @@ void (*cached_handler)(int);
  * @param handler
  */
 static void get_current_handler(int signal, void (**handler)(int)) {
-	struct sigaction query_action;
-	if (sigaction(signal, NULL, &query_action) < 0) {
-		// -1 indicates an error
-		*handler = NULL;
-	} else if (query_action.sa_handler == SIG_DFL) {
-		// default handler
-		*handler = NULL;
-	} else if (query_action.sa_handler == SIG_IGN) {
-		// signal ignored
-		*handler = NULL;
-	} else {
-		// a custom handler is defined and in effect
-		*handler = query_action.sa_handler;
-	}
+	// struct sigaction query_action;
+	// if (sigaction(signal, NULL, &query_action) < 0) {
+	// 	// -1 indicates an error
+	// 	*handler = NULL;
+	// } else if (query_action.sa_handler == SIG_DFL) {
+	// 	// default handler
+	// 	*handler = NULL;
+	// } else if (query_action.sa_handler == SIG_IGN) {
+	// 	// signal ignored
+	// 	*handler = NULL;
+	// } else {
+	// 	// a custom handler is defined and in effect
+	// 	*handler = query_action.sa_handler;
+	// }
+	*handler = NULL;
 }
 
 /**
@@ -189,12 +199,14 @@ static void render_handle_sigtstp(int sig) {
 	if (cached_handler)
 		cached_handler(sig);
 }
+#endif
 
 /**
  * initialize the renderer to display n games for players given by the names in
  * the array names
  */
 void render_init(int n, char *names[]) {
+	fprintf(logging_fp, "render_init(n=%d, names=...)\n", n);
 	// If the locale is not initialized, the library assumes that characters
 	// are printable as in ISO-8859-1, to work with certain legacy programs.
 	// This is to be explicit.
@@ -240,6 +252,7 @@ void render_init(int n, char *names[]) {
 
 	_render_refresh_layout();
 
+#ifdef THIS_IS_NOT_WINDOWS
 	signal(SIGWINCH, render_handle_sig);
 
 	// cache the ncurses SIGTSTP handler so that we can call it right after
@@ -247,6 +260,7 @@ void render_init(int n, char *names[]) {
 	get_current_handler(SIGTSTP, &cached_handler);
 	// set our handler for SIGTSTP
 	signal(SIGTSTP, render_handle_sigtstp);
+#endif
 }
 
 /**
@@ -381,8 +395,13 @@ void render_game_view_data(char *name, struct game_view_data *view) {
 
 	if (bd == 0) {
 		fprintf(logging_fp,
-		        "render_game_view_data: no board found for name\n");
+		        "render_game_view_data: no board found for name %s\n",
+		        name);
 		return;
+	} else {
+		fprintf(logging_fp,
+		        "render_game_view_data: rendering board for %s\n",
+		        name);
 	}
 
 	WINDOW *tetris_window = bd->tetris_window;

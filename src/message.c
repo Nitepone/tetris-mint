@@ -4,6 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "os_compat.h"
+#ifdef THIS_IS_WINDOWS
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
+
 #include "log.h"
 #include "message.h"
 #include "player.h"
@@ -44,7 +51,7 @@ char *message_type_to_str(msg_type_t msg_type) {
 	}
 }
 
-int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id,
+int message_nbytes(SOCKET socket_fd, char *bytes, int nbytes, int request_id,
                    msg_type_t message_type) {
 	unsigned long payload_bytes = sizeof(MessageHeader) + nbytes;
 	char *payload = calloc(sizeof(char), payload_bytes);
@@ -59,25 +66,32 @@ int message_nbytes(int socket_fd, char *bytes, int nbytes, int request_id,
 	// copy the body into the payload
 	memcpy(payload + sizeof(MessageHeader), bytes, nbytes);
 
-	int bytes_written = write(socket_fd, payload, payload_bytes);
+	int bytes_written = send(socket_fd, payload, payload_bytes, 0);
 
 	free(payload);
 
+	// Note: Windows uses a 64-bit socket number, but Linux uses a 32-bit
+	// number. For now, this will just print the lower 32 bits.
 	fprintf(logging_fp,
 	        "message_nbytes: Wrote %d bytes to file pointer %x, "
 	        "content_length=%d request_id=%d message_type=%s \n",
-	        bytes_written, socket_fd, nbytes, request_id,
-	        message_type_to_str(message_type));
+	        bytes_written, (uint32_t)(socket_fd & 0xFFFF), nbytes,
+	        request_id, message_type_to_str(message_type));
 
+#ifdef THIS_IS_WINDOWS
+	if (bytes_written == SOCKET_ERROR) {
+#else
 	if (bytes_written < 0) {
-		perror("write");
+#endif
+		fprintf(logging_fp,
+		        "message_nbytes: socket error during write");
 		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;
 }
 
-int message_blob(int socket_fd, Blob *blob, int request_id,
+int message_blob(SOCKET socket_fd, Blob *blob, int request_id,
                  msg_type_t message_type) {
 	return message_nbytes(socket_fd, blob->bytes, blob->length, request_id,
 	                      message_type);
@@ -97,8 +111,8 @@ Blob *serialize_state(Player *player) {
 	// first, render the board into the player view
 	generate_game_view_data(&player->view, player->contents);
 	// figure out how big our blob needs to be
-	u_int8_t name_length = strnlen(player->name, PLAYER_NAME_MAX_CHARS);
-	u_int16_t blob_size = sizeof(struct game_view_data) + name_length + 1;
+	uint8_t name_length = strnlen(player->name, PLAYER_NAME_MAX_CHARS);
+	uint16_t blob_size = sizeof(struct game_view_data) + name_length + 1;
 	// create a blob to contain the message
 	Blob *blob = create_blob(blob_size);
 	// next null-terminated bytes are used to store the player name

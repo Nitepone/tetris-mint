@@ -1,10 +1,13 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <stdint.h>
+
+#include "os_compat.h"
 #include "player.h"
 #include "tetris_game.h"
 
-typedef u_int8_t msg_type_t;
+typedef uint8_t msg_type_t;
 
 #define MSG_MAGIC_NUMBER 0xfeedU
 
@@ -42,11 +45,11 @@ typedef struct ttetris_msg_header MessageHeader;
 struct ttetris_msg_header {
 	/* magic number used to detect if our reader is mis-aligned and
 	 * potentially avoid errors */
-	u_int32_t magic_number;
+	uint32_t magic_number;
 	/* id to correlate messages, set to 0 if not needed */
-	u_int16_t request_id;
+	uint16_t request_id;
 	/* (required) length of the message body (not including the header) */
-	u_int16_t content_length;
+	uint16_t content_length;
 	/* (optional) type of message being sent */
 	msg_type_t message_type;
 };
@@ -61,15 +64,17 @@ struct ttetris_msg_header {
 char *message_type_to_str(msg_type_t msg_type);
 
 /**
- * Write n bytes to socket and return EXIT_SUCCESS or EXIT_FAILURE
+ * Write n bytes to socket
+ * @return EXIT_SUCCESS or EXIT_FAILURE
  */
-int message_nbytes(int socket_fd, char *bytes, int n, int request_id,
+int message_nbytes(SOCKET socket_fd, char *bytes, int n, int request_id,
                    msg_type_t message_type);
 
 /**
  * Wrapper for message_nbytes that takes a blob
+ * @return EXIT_SUCCESS or EXIT_FAILURE
  */
-int message_blob(int socket_fd, Blob *blob, int request_id,
+int message_blob(SOCKET socket_fd, Blob *blob, int request_id,
                  msg_type_t message_type);
 
 int send_online_users(int filedes, int request_id);
