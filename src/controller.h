@@ -1,6 +1,17 @@
 #ifndef _CONTROLLER_H
 #define _CONTROLLER_H
 
+typedef struct control_keybindings {
+	int hard_drop;
+	int soft_drop;
+	int translate_left;
+	int translate_right;
+	int rotate_clockwise;
+	int rotate_counterclockwise;
+	int swap;
+	int quit;
+} ControlKeybindings;
+
 /**
  * Define the control set interface. The actual implementation should be
  * provided by other files.
@@ -21,6 +32,9 @@ typedef struct st_tetris_control_set {
  * @param context pointer to an object that will be passed to the methods
  * in the given control set
  */
-void keyboard_input_loop(TetrisControlSet controls, void *context);
+void keyboard_input_loop(TetrisControlSet controls,
+                         ControlKeybindings keybindings, void *context);
+
+ControlKeybindings default_keybindings(void);
 
 #endif
