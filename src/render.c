@@ -305,13 +305,33 @@ void render_close(void) { render_ingame_cleanup(); }
  *              the COLOR_PAIR macro
  */
 static void render_cell(WINDOW *win, int row, int col, short color) {
-	for (int i = 1; i <= CELL_WIDTH; i++)
-		mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
-	// Handle Shadow Block
-	if (color == shadow)
-		color = 8;
-	mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, color,
-	         NULL);
+	int i;
+	// render shadow block
+	if (color == shadow) {
+		// reset cell
+		mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0, -1,
+		         NULL);
+		// handle narrow boards
+		if (CELL_WIDTH == 1) {
+			mvwaddch(win, 1 + row, 1 + col * CELL_WIDTH, '#');
+		}
+		// handle wide boards
+		else {
+			mvwaddch(win, 1 + row, 1 + col * CELL_WIDTH, '[');
+			for (i = 2; i < CELL_WIDTH; i++) {
+				mvwaddch(win, 1 + row, i + col * CELL_WIDTH,
+				         ' ');
+			}
+			mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ']');
+		}
+	}
+	// render normal block
+	else {
+		for (i = 1; i <= CELL_WIDTH; i++)
+			mvwaddch(win, 1 + row, i + col * CELL_WIDTH, ' ');
+		mvwchgat(win, 1 + row, 1 + col * CELL_WIDTH, CELL_WIDTH, 0,
+		         color, NULL);
+	}
 }
 
 /**
