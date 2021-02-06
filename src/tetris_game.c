@@ -324,6 +324,26 @@ int translate_block_left(struct game_contents *gc) {
 	return translate_block_helper(gc, 1);
 }
 
+/*
+ * Attempts wallkicks for a block until 
+ */
+static int attempt_standard_wallkick
+
+static int test_block_with_wallkick(struct game_contents *gc, struct active_block *block, enum rotation target_rot,
+		struct position target_pos) {
+	switch (block->blocktype) {
+	case hero:
+		break;
+	case orange:
+	case blue:
+	case cleve:
+	case rhode:
+	case teewee:
+	case smashboy:
+		
+	}
+}
+
 int rotate_block(int clockwise, struct game_contents *game_contents) {
 	int x;
 	struct active_block *new_block = NULL;

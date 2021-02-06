@@ -90,6 +90,58 @@ static const struct tetris_block available_blocks[] = {
 static const struct tetris_block tetris_block_null = {no_type, no_rotate, 0,
                                                       NULL};
 
+/* Standard Wallkick Data */
+static const struct position wallkick_offsets_standard_N_R[] = {
+	{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2}
+};
+static const struct position wallkick_offsets_standard_R_N[] = {
+	{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 2}, { 1, 2}
+};
+static const struct position wallkick_offsets_standard_R_I[] = {
+	{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 2}, { 1, 2}
+};
+static const struct position wallkick_offsets_standard_I_R[] = {
+	{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2}
+;
+static const struct position wallkick_offsets_standard_I_L[] = {
+	{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-2}, { 1,-2}
+};
+static const struct position wallkick_offsets_standard_L_I[] = {
+	{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 2}, {-1, 2}
+};
+static const struct position wallkick_offsets_standard_L_N[] = {
+	{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 2}, {-1, 2}
+};
+static const struct position wallkick_offsets_standard_N_L[] = {
+	{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-2}, { 1,-2}
+};
+
+/* Alternate Wallkick Data for Hero */
+static const struct position wallkick_offsets_hero_N_R[] = {
+
+};
+static const struct position wallkick_offsets_hero_R_N[] = {
+
+};
+static const struct position wallkick_offsets_hero_R_I[] = {
+
+};
+static const struct position wallkick_offsets_hero_I_R[] = {
+
+};
+static const struct position wallkick_offsets_hero_I_L[] = {
+
+};
+static const struct position wallkick_offsets_hero_L_I[] = {
+
+};
+static const struct position wallkick_offsets_hero_L_N[] = {
+
+};
+static const struct position wallkick_offsets_hero_N_L[] = {
+
+};
+
 struct active_block {
 	struct tetris_block tetris_block;
 	enum rotation rotation;
