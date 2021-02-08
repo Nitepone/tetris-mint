@@ -11,6 +11,13 @@ if (WIN32)
     # add our custom cmake modules (for curses)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
     set(ADDITIONAL_LIBS wsock32 ws2_32)
+    # By passing the `-static` flag, MinGW / GCC will use static libraries when
+    # available (instead of DLLs). This is especially important for dlls like
+    # pthreads on Windows, which I do not expect end users to have.
+    #
+    # TODO We should be able to use the static flag on Linux as well, but I'm
+    # having trouble getting ncurses to link statically.
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
 endif()
 
 find_package(Threads)
