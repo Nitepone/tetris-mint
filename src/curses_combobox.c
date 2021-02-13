@@ -80,10 +80,10 @@ int curses_combobox_virtual_refresh(struct curses_combobox *entry) {
 		// This call must follow the printing of the text
 		if (entry->cursor_position == j)
 			mvwchgat(entry->window, 1 + i, 1, entry->width - 2,
-			         A_STANDOUT | A_BOLD, COLOR_PAIR(1), NULL);
+			         A_STANDOUT, 0, NULL);
 		else
 			mvwchgat(entry->window, 1 + i, 1, entry->width - 2,
-			         A_NORMAL, COLOR_PAIR(1), NULL);
+			         A_NORMAL, 0, NULL);
 		i++;
 		j++;
 	}

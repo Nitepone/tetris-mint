@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "os_compat.h"
 #include "tetris_game.h"
 
 /*
@@ -296,6 +297,7 @@ static int place_block(struct game_contents *gc) {
 		return 2;
 	generate_new_block(gc);
 	gc->swap_h_block_count = 0;
+	gc->auto_lower_count = 0;
 	return 0;
 }
 
@@ -407,12 +409,14 @@ int generate_game_view_data(struct game_view_data **gvd,
 	generate_shadow_block(gc);
 	get_block_positions(gc->active_block);
 	get_block_positions(gc->shadow_block);
+	// draw shadow_block to board
 	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
-		// draw shadow_block to board
 		cur_unit_pos = gc->shadow_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
 		    ((int)(enum block_type)shadow);
-		// draw active_block to board
+	}
+	// draw active_block to board (separate to ensure overwrite of shadow)
+	for (i = 0; i < MAX_BLOCK_UNITS; i++) {
 		cur_unit_pos = gc->active_block->board_units[i];
 		(*gvd)->board[cur_unit_pos.y][cur_unit_pos.x] =
 		    ((int)gc->active_block->tetris_block.type);
