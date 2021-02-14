@@ -37,3 +37,13 @@ jobs:
 
     - name: Run Tests
       run: ./bin/unit_tests
+
+    - name: Build Debian Package
+      run: make -j$(nproc) package
+
+    - name: Upload the Debian Package
+      uses: actions/upload-artifact@v2.2.2
+      with:
+        name: tetris-mint-deb-package
+        path: ./tetris-mint-*-Linux.deb
+        if-no-files-found: error

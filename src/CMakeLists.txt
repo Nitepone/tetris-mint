@@ -1,7 +1,6 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.0)
 
-# projectname is the same as the main-executable
-project(ttetris)
+project(tetris-mint)
 
 # Previously, we used add_definitions() to set the compile flags, but that is not always supported.
 set(CMAKE_C_STANDARD 99)
@@ -25,7 +24,7 @@ find_package(Curses)
 include_directories(${CURSES_INCLUDE_DIRS})
 
 
-list(APPEND ttetris_SOURCES
+list(APPEND tetrismint_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/tetris_game.c
     ${CMAKE_CURRENT_LIST_DIR}/client_conn.c
     ${CMAKE_CURRENT_LIST_DIR}/controller.c
@@ -45,7 +44,7 @@ list(APPEND ttetris_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/event.c
 )
 
-add_library(ttetrislib OBJECT ${ttetris_SOURCES})
+add_library(tetrismintlib OBJECT ${tetrismint_SOURCES})
 
 # Solo main uses termios, which is *nix only. For now, just skip building
 # solo main on Windows.
@@ -54,15 +53,25 @@ if (NOT WIN32)
     target_link_libraries(solo_main ${CMAKE_THREAD_LIBS_INIT} )
 endif()
 
-add_executable(client client.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(server server.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_render test_render.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_client_conn test_client_conn.c $<TARGET_OBJECTS:ttetrislib>)
-add_executable(test_player test_player.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(tetris-mint client.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(tetris-mint-server server.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_render test_render.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_client_conn test_client_conn.c $<TARGET_OBJECTS:tetrismintlib>)
+add_executable(test_player test_player.c $<TARGET_OBJECTS:tetrismintlib>)
 
-target_link_libraries(ttetrislib ${CURSES_LIBRARIES} ${CURSES_INCLUDE_DIRS})
-target_link_libraries(client ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
-target_link_libraries(server ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
+target_link_libraries(tetrismintlib ${CURSES_LIBRARIES} ${CURSES_INCLUDE_DIRS})
+target_link_libraries(tetris-mint ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
+target_link_libraries(tetris-mint-server ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
 target_link_libraries(test_render ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
 target_link_libraries(test_client_conn ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
 target_link_libraries(test_player ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
+
+# install for cpack packaging
+install(
+    TARGETS tetris-mint
+    RUNTIME DESTINATION bin
+)
+install(
+    TARGETS tetris-mint-server
+    RUNTIME DESTINATION bin
+)

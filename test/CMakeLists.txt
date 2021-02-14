@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.0)
 
 # Previously, we used add_definitions() to set the compile flags, but that is not always supported.
 set(CMAKE_C_STANDARD 99)
@@ -14,8 +14,8 @@ find_package(Curses)
 
 include_directories(${CURSES_INCLUDE_DIRS})
 
-add_executable(unit_tests test_tetris_game.c $<TARGET_OBJECTS:ttetrislib>)
+add_executable(unit_tests test_tetris_game.c $<TARGET_OBJECTS:tetrismintlib>)
 
-target_link_libraries(unit_tests ttetrislib unity ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
+target_link_libraries(unit_tests tetrismintlib unity ${CURSES_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBS})
 
 add_test(test_basic test_tetris_game)
