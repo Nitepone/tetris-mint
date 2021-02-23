@@ -29,5 +29,5 @@ They can be run by running `./bin/unit_tests`
 
 ## Usage
 
-Rather than explain the usage here, just use the command help via `./server -h`
-and `./client -h`.
+Rather than explain the usage here, just use the command help via
+`./bin/tetris-mint-server -h` and `./bin/tetris-mint -h`.
