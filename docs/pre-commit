@@ -22,7 +22,7 @@ if [ $? -ne 1 ]; then
 		${ANSI_RED}Git pre-commit check failed:
 		The commit does not match clang-format${ANSI_RESET}
 
-		To fix this, run ${ANSI_BOLD}clang-format -style=file *.h *.c${ANSI_RESET} from the src directory
+		To fix this, run ${ANSI_BOLD}clang-format -i -style=file *.h *.c${ANSI_RESET} from the src directory
 	EOF
 	exit 1
 fi
