@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,7 +52,7 @@ int make_socket(char *host, uint16_t port) {
 		char errmsg[256];
 		last_error_message_to_buffer(errmsg, 256);
 		fprintf(stderr, errmsg);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 #ifdef THIS_IS_NOT_WINDOWS
@@ -60,7 +61,7 @@ int make_socket(char *host, uint16_t port) {
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
 	               sizeof(opt))) {
 		perror("setsockopt");
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 #endif
 
@@ -111,6 +112,8 @@ static void tell_party_that_the_game_started(TetrisParty *party) {
  * Returns -1 if EOF is received or 0 otherwise.
  */
 int read_from_client(SOCKET filedes) {
+	unsigned int max_errmsg = 256;
+	char errmsg[max_errmsg];
 	char buffer[MAXMSG];
 	Blob *blob;
 
@@ -120,8 +123,9 @@ int read_from_client(SOCKET filedes) {
 
 	// exit early if there was an error
 	if (nbytes < 0) {
-		perror("read_from_client: read");
-		exit(EXIT_FAILURE);
+		last_error_message_to_buffer(errmsg, max_errmsg);
+		fprintf(logging_fp, "read_from_client: %s\n", errmsg);
+		return EXIT_SUCCESS;
 	}
 
 	// exit early if we reached the end-of-file
@@ -255,6 +259,10 @@ void usage() {
 	exit(EXIT_FAILURE);
 }
 
+static void sigpipe_handler(int signal_number) {
+	fprintf(logging_fp, "sigpipe_handler: Trapped and ignored SIGPIPE\n");
+}
+
 int main(int argc, char *argv[]) {
 	char host[128] = "127.0.0.1";
 	char port[6] = "5555";
@@ -311,6 +319,12 @@ int main(int argc, char *argv[]) {
 
 	fprintf(logging_fp, "main: Started listening\n");
 
+	// install a signal handler for SIGPIPE so that Linux won't kill us
+	// every time that we write to a closed socket.
+	//
+	// https://stackoverflow.com/a/6824284/2796349
+	signal(SIGPIPE, sigpipe_handler);
+
 	// TODO What is the maximum number of sockets we can put in a file
 	//  descriptor set?
 	int max_sockets = 50;
@@ -336,7 +350,7 @@ int main(int argc, char *argv[]) {
 		// Block until input arrives on one or more active sockets.
 		if (select(FD_SETSIZE, &active_fd_set, NULL, NULL, NULL) < 0) {
 			perror("select");
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 
 		// service the listening socket
@@ -352,7 +366,7 @@ int main(int argc, char *argv[]) {
 			           (socklen_t *)&size);
 			if (new < 0) {
 				perror("accept");
-				exit(EXIT_FAILURE);
+				continue;
 			}
 			fprintf(logging_fp,
 			        "main: new connection from host %s, "
