@@ -2,7 +2,7 @@
 
 Hackathon approved tetris cli online
 
-![Tetris Mint Gameplay](2021-02-23_tetris_mint_demo.gif)
+![Tetris Mint Gameplay](docs/2021-02-23_tetris_mint_demo.gif)
 
 ## Building
 
