@@ -66,7 +66,16 @@ int message_nbytes(SOCKET socket_fd, char *bytes, int nbytes, int request_id,
 	// copy the body into the payload
 	memcpy(payload + sizeof(MessageHeader), bytes, nbytes);
 
-	int bytes_written = send(socket_fd, payload, payload_bytes, 0);
+	int bytes_written = send(socket_fd, payload, payload_bytes,
+#ifdef THIS_IS_WINDOWS
+	                         0
+#else
+	                         // For Linux, MSG_NOSIGNAL prevents SIGPIPE
+	                         // from being generated if we write into a
+	                         // closed socket.
+	                         MSG_NOSIGNAL
+#endif
+	);
 
 	free(payload);
 

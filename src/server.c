@@ -259,10 +259,6 @@ void usage() {
 	exit(EXIT_FAILURE);
 }
 
-static void sigpipe_handler(int signal_number) {
-	fprintf(logging_fp, "sigpipe_handler: Trapped and ignored SIGPIPE\n");
-}
-
 int main(int argc, char *argv[]) {
 	char host[128] = "127.0.0.1";
 	char port[6] = "5555";
@@ -318,12 +314,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	fprintf(logging_fp, "main: Started listening\n");
-
-	// install a signal handler for SIGPIPE so that Linux won't kill us
-	// every time that we write to a closed socket.
-	//
-	// https://stackoverflow.com/a/6824284/2796349
-	signal(SIGPIPE, sigpipe_handler);
 
 	// TODO What is the maximum number of sockets we can put in a file
 	//  descriptor set?
