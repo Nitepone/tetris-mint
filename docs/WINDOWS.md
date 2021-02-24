@@ -30,7 +30,7 @@ git.exe clone https://github.com/wmcbrine/PDCurses
 Clone https://github.com/wmcbrine/PDCurses
 
 ```powershell
-git.exe clone https://github.com/nitepone/terminally-tetris
+git.exe clone https://github.com/nitepone/tetris-mint
 ```
 
 Clone submodules

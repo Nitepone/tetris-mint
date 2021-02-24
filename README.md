@@ -1,4 +1,4 @@
-# terminally-tetris
+# Tetris Mint
 
 Hackathon approved tetris cli online
 

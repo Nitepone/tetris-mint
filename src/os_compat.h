@@ -1,5 +1,5 @@
-#ifndef TERMINALLY_TETRIS_OS_COMPAT_H
-#define TERMINALLY_TETRIS_OS_COMPAT_H
+#ifndef _OS_COMPAT_H
+#define _OS_COMPAT_H
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #define THIS_IS_WINDOWS
@@ -15,4 +15,4 @@ typedef struct sockaddr_in SOCKADDR_IN;
 
 void last_error_message_to_buffer(char *buffer, unsigned int max_length);
 
-#endif // TERMINALLY_TETRIS_OS_COMPAT_H
+#endif // _OS_COMPAT_H
