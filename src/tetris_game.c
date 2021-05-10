@@ -389,6 +389,7 @@ int hard_drop(struct game_contents *gc) {
 }
 
 int generate_shadow_block(struct game_contents *gc) {
+	destroy_block(&(gc->shadow_block));
 	clone_block(gc->active_block, &(gc->shadow_block));
 	while (lower_block_helper(gc, gc->shadow_block))
 		;
