@@ -18,7 +18,7 @@ struct game_view_data *gvd = NULL;
 
 void print_board() {
 	int i, j, val;
-	generate_game_view_data(&gvd, game_contents);
+	generate_game_view_data(game_contents, &gvd);
 	printf("\e[1;1H\e[2J"); // clear posix
 	printf("\n\n\n\n\n\n\n\n");
 	for (i = (BOARD_HEIGHT - 1); i >= 0; i--) {
@@ -68,7 +68,7 @@ void print_board() {
 void *game_clock(void *input) {
 	while (1) {
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
-		lower_block(1, game_contents);
+		lower_block(game_contents, 1);
 		print_board();
 	}
 	return 0;
@@ -95,13 +95,13 @@ int main() {
 			translate_block_right(game_contents);
 			break;
 		case 'q':
-			rotate_block(1, game_contents);
+			rotate_block(game_contents, 1);
 			break;
 		case 'e':
-			rotate_block(0, game_contents);
+			rotate_block(game_contents, 0);
 			break;
 		case 's':
-			lower_block(0, game_contents);
+			lower_block(game_contents, 0);
 			break;
 		case 'w':
 			hard_drop(game_contents);

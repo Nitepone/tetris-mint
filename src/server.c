@@ -174,7 +174,7 @@ int read_from_client(SOCKET filedes) {
 			               MSG_TYPE_REGISTER_SUCCESS);
 			break;
 		case MSG_TYPE_ROTATE:
-			rotate_block(cursor[0], player->contents);
+			rotate_block(player->contents, cursor[0]);
 			break;
 		case MSG_TYPE_TRANSLATE:
 			if (cursor[0]) {
@@ -184,7 +184,7 @@ int read_from_client(SOCKET filedes) {
 			}
 			break;
 		case MSG_TYPE_LOWER:
-			lower_block(0, player->contents);
+			lower_block(player->contents, 0);
 			break;
 		case MSG_TYPE_DROP:
 			hard_drop(player->contents);

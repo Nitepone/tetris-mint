@@ -20,7 +20,7 @@ void *player_clock(void *input) {
 	fprintf(logging_fp, "player_clock: thread started\n");
 	do {
 		nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
-		lower_block(1, player->contents);
+		lower_block(player->contents, 1);
 
 		// if the player has a party, send the board to all players
 		if (player->party) {
