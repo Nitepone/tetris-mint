@@ -11,6 +11,7 @@
 
 #include "os_compat.h"
 #include "tetris_game.h"
+#include "tetris_game_priv.h"
 
 /*
  * Destroys a game_contents and frees memory
