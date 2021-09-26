@@ -124,7 +124,7 @@ struct game_view_data {
  * @param forced - 0 if move is done by client, non-zero if by game
  * @return - 0 if game is still good, -1 if the block cannot be lowered
  */
-int lower_block(int forced, struct game_contents *game_contents);
+int lower_block(struct game_contents *game_contents, int forced);
 
 /*
  * Translates a block left a unit
@@ -143,7 +143,7 @@ int translate_block_right(struct game_contents *gc);
  * @param clockwise - zero rotates the block counter-clockwise, else clockwise
  * @return - 0 if piece rotated, else non-zero
  */
-int rotate_block(int clockwise, struct game_contents *game_contents);
+int rotate_block(struct game_contents *game_contents, int clockwise);
 
 /*
  * Starts a game and takes a double pointer for game contents data
@@ -168,8 +168,8 @@ int destroy_game(struct game_contents **game_contents);
 /*
  * Makes a game_view_data with a representation of all active board pieces
  */
-int generate_game_view_data(struct game_view_data **gvd,
-                            struct game_contents *gc);
+int generate_game_view_data(struct game_contents *gc,
+                            struct game_view_data **gvd);
 
 /**
  * Check if the game is over

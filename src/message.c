@@ -118,7 +118,7 @@ int send_online_users(int filedes, int request_id) {
 
 Blob *serialize_state(Player *player) {
 	// first, render the board into the player view
-	generate_game_view_data(&player->view, player->contents);
+	generate_game_view_data(player->contents, &player->view);
 	// figure out how big our blob needs to be
 	uint8_t name_length = strnlen(player->name, PLAYER_NAME_MAX_CHARS);
 	uint16_t blob_size = sizeof(struct game_view_data) + name_length + 1;

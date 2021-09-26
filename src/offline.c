@@ -16,7 +16,7 @@ static Player *offline_player;
  * used. After refactoring, it will likely be removed.
  */
 static int renderish(int fd, Player *player) {
-	generate_game_view_data(&player->view, player->contents);
+	generate_game_view_data(player->contents, &player->view);
 	render_game_view_data(player->name, player->view);
 	return EXIT_SUCCESS;
 }
@@ -31,12 +31,12 @@ static void offline_translate(void *context, int x) {
 }
 
 static void offline_lower(void *context) {
-	lower_block(0, offline_player->contents);
+	lower_block(offline_player->contents, 0);
 	renderish(0, offline_player);
 }
 
 static void offline_rotate(void *context, int theta) {
-	rotate_block(theta, offline_player->contents);
+	rotate_block(offline_player->contents, theta);
 	renderish(0, offline_player);
 }
 

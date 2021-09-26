@@ -325,7 +325,7 @@ int translate_block_left(struct game_contents *gc) {
 	return translate_block_helper(gc, 1);
 }
 
-int rotate_block(int clockwise, struct game_contents *game_contents) {
+int rotate_block(struct game_contents *game_contents, int clockwise) {
 	int x;
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
@@ -366,18 +366,18 @@ static int lower_block_helper(struct game_contents *gc,
 	}
 }
 
-int lower_block(int auto_drop, struct game_contents *gc) {
+int lower_block(struct game_contents *game_contents, int forced) {
 	int ret = 0;
-	ret = lower_block_helper(gc, gc->active_block);
+	ret = lower_block_helper(game_contents, game_contents->active_block);
 	if (ret) {
 		return ret;
 	}
 	// handle placing block if needed
-	if (!auto_drop) {
-		return place_block(gc);
+	if (!forced) {
+		return place_block(game_contents);
 	} else {
-		if (gc->auto_lower_count++ >= MAX_AUTO_LOWER)
-			return place_block(gc);
+		if (game_contents->auto_lower_count++ >= MAX_AUTO_LOWER)
+			return place_block(game_contents);
 	}
 	return -1;
 }
@@ -396,8 +396,8 @@ int generate_shadow_block(struct game_contents *gc) {
 	return 0;
 }
 
-int generate_game_view_data(struct game_view_data **gvd,
-                            struct game_contents *gc) {
+int generate_game_view_data(struct game_contents *gc,
+                            struct game_view_data **gvd) {
 	int i;
 	struct position cur_unit_pos;
 	// alloc new gvd
