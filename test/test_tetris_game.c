@@ -6,6 +6,7 @@
  */
 
 #include "tetris_game.h"
+#include "tetris_game_priv.h"
 #include "unity.h"
 
 /* Is run before every test, put unit init calls here. */

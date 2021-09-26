@@ -33,6 +33,8 @@ struct board_display {
 	WINDOW *lines_window;
 };
 
+enum rotation { none, right, invert, left };
+
 static struct board_display *boards = NULL;
 static int nboards;
 // flag used to indicate that the window layout needs to be refreshed
