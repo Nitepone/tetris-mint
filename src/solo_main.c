@@ -60,8 +60,7 @@ void print_board() {
 		printf("\n\e[0;0m");
 	}
 	printf("                    ");
-	printf("Points: %d   Lines: %d", game_contents->points,
-	       game_contents->lines_cleared);
+	printf("Points: %d   Lines: %d", gvd->points, gvd->lines_cleared);
 	printf("\n");
 }
 
