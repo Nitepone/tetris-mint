@@ -17,10 +17,10 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 enum rotation {
-	none,
-	right,
-	invert,
-	left,
+	none = 0,
+	right = 1,
+	invert = 2,
+	left = 3,
 };
 #define ROT_COUNT 4
 
@@ -40,6 +40,7 @@ enum block_rotation_type { no_rotate, center_based, corner_based };
 
 struct game_contents;
 struct active_block;
+struct srs_movement_mode;
 
 struct position {
 	int x;
@@ -51,6 +52,7 @@ struct tetris_block {
 	enum block_rotation_type rotation_type;
 	unsigned int cell_count;
 	const struct position *position_offsets;
+	const struct srs_movement_mode *srs_mode;
 };
 
 struct game_view_data {

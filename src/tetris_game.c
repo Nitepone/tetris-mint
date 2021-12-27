@@ -326,21 +326,61 @@ int translate_block_left(struct game_contents *gc) {
 	return translate_block_helper(gc, 1);
 }
 
-int rotate_block(struct game_contents *game_contents, int clockwise) {
-	int x;
+int rotate_block(struct game_contents *gc, int clockwise) {
+	int d;
+	int i;
+	enum rotation start_rot = gc->active_block->rotation;
+	enum rotation end_rot;
+	const struct position *srs_test = NULL;
+	const struct srs_movement_descriptor *srs_desc = NULL;
+	const struct srs_movement_mode *srs_mode =
+	    gc->active_block->tetris_block.srs_mode;
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
+
 	if (clockwise)
-		x = 1;
+		d = 1;
 	else
-		x = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
+		d = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
+	end_rot = (start_rot + d) % ROT_COUNT;
 	// perform rotation
-	new_block->rotation = (new_block->rotation + x) % ROT_COUNT;
+	clone_block(gc->active_block, &new_block);
+	new_block->rotation = end_rot;
+
+	// fallback to basic rotation if no SRS
+	if (srs_mode == NULL) {
+		goto complete_rotation;
+	}
+	// find SRS descriptor for current movement
+	for (i = 0; i < srs_mode->descriptor_count; i++) {
+		srs_desc = (srs_mode->descriptor_arr + i);
+		if ((srs_desc->start_rot == start_rot) &&
+		    (srs_desc->end_rot == end_rot)) {
+			break;
+		}
+		srs_desc = NULL;
+	}
+
+	// fallback to basic rotation if no SRS descriptor
+	if (srs_desc == NULL) {
+		goto complete_rotation;
+	}
+	// attempt SRS test positions
+	for (i = 0; i < srs_desc->test_count; i++) {
+		srs_test = srs_desc->test_arr + i;
+		new_block->position = (struct position){
+		    gc->active_block->position.x + srs_test->x,
+		    gc->active_block->position.y + srs_test->y};
+		if (!test_block(gc, new_block)) {
+			goto complete_rotation;
+		}
+	}
+
+complete_rotation:
 	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
+	if (!test_block(gc, new_block)) {
+		temp_block_p = gc->active_block;
+		gc->active_block = new_block;
 		destroy_block(&temp_block_p);
 		return 0;
 	} else {
