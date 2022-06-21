@@ -1,6 +1,6 @@
 /*
  * tetris-game.h
- * Copyright (C) 2019-2021 nitepone <admin@night.horse>
+ * Copyright (C) 2019-2022 nitepone <luna@night.horse>
  *
  * Distributed under terms of the MIT license.
  */
@@ -36,8 +36,6 @@ enum block_type {
 	smashboy,
 };
 
-enum block_rotation_type { no_rotate, center_based, corner_based };
-
 struct game_contents;
 struct active_block;
 struct srs_movement_mode;
@@ -49,7 +47,6 @@ struct position {
 
 struct tetris_block {
 	enum block_type type;
-	enum block_rotation_type rotation_type;
 	unsigned int cell_count;
 	const struct position *position_offsets;
 	const struct srs_movement_mode *srs_mode;

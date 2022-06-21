@@ -1,6 +1,6 @@
 /*
  * tetris-game.c
- * Copyright (C) 2019-2021 nitepone <admin@night.horse>
+ * Copyright (C) 2019-2022 nitepone <admin@night.horse>
  *
  * Distributed under terms of the MIT license.
  */
@@ -94,47 +94,9 @@ int new_game(struct game_contents **game_contents) {
 }
 
 /*
- * Gets edge centric block positions
- * For use with blocks like the square block or line piece
- *
- * This rotates differently due to the "+ 1" when calculating the offsets
+ * Populates active_block->board_units based on block type offsets.
  */
-static int get_ec_block_pos(struct active_block *block) {
-	int x, y, i;
-	struct position cur_offset_pos;
-	for (i = 0; i < block->tetris_block.cell_count; i++) {
-		// get one offset
-		cur_offset_pos = block->tetris_block.position_offsets[i];
-		// rotate
-		switch (block->rotation) {
-		case none:
-			x = cur_offset_pos.x;
-			y = cur_offset_pos.y;
-			break;
-		case right:
-			x = cur_offset_pos.y;
-			y = (-1) * cur_offset_pos.x + 1;
-			break;
-		case invert:
-			x = (-1) * cur_offset_pos.x + 1;
-			y = (-1) * cur_offset_pos.y + 1;
-			break;
-		case left:
-			x = (-1) * cur_offset_pos.y + 1;
-			y = cur_offset_pos.x;
-			break;
-		}
-		// convert offset to position and save
-		block->board_units[i] = ((struct position){
-		    block->position.x + x, block->position.y + y});
-	}
-	return 0;
-}
-
-/*
- * Gets "block centric" block positions based on offsets and rotation
- */
-static int get_bc_block_pos(struct active_block *block) {
+static int get_block_positions(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < block->tetris_block.cell_count; i++) {
@@ -162,24 +124,6 @@ static int get_bc_block_pos(struct active_block *block) {
 		// convert offset to position and save
 		block->board_units[i] = ((struct position){
 		    block->position.x + x, block->position.y + y});
-	}
-	return 0;
-}
-
-/*
- * This should direct blocks that are drawn using unit relational drawing
- * and special blocks to their associated functions.
- */
-static int get_block_positions(struct active_block *block) {
-	switch (block->tetris_block.rotation_type) {
-	// special blocks
-	case corner_based:
-		return get_ec_block_pos(block);
-	// standard blocks
-	case center_based:
-		return get_bc_block_pos(block);
-	default:
-		return -1;
 	}
 	return 0;
 }
@@ -338,19 +282,17 @@ int rotate_block(struct game_contents *gc, int clockwise) {
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
 
-	if (clockwise)
-		d = 1;
-	else
-		d = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
-	end_rot = (start_rot + d) % ROT_COUNT;
-	// perform rotation
-	clone_block(gc->active_block, &new_block);
-	new_block->rotation = end_rot;
-
-	// fallback to basic rotation if no SRS
+	// no-op on no SRS kick mode
 	if (srs_mode == NULL) {
-		goto complete_rotation;
+		return 0;
 	}
+	// calculate end_rot
+	if (clockwise) {
+		d = 1;
+	} else {
+		d = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
+	}
+	end_rot = (start_rot + d) % ROT_COUNT;
 	// find SRS descriptor for current movement
 	for (i = 0; i < srs_mode->descriptor_count; i++) {
 		srs_desc = (srs_mode->descriptor_arr + i);
@@ -360,33 +302,29 @@ int rotate_block(struct game_contents *gc, int clockwise) {
 		}
 		srs_desc = NULL;
 	}
-
-	// fallback to basic rotation if no SRS descriptor
+	// error if no SRS descriptor for current movement
 	if (srs_desc == NULL) {
-		goto complete_rotation;
+		return -2;
 	}
-	// attempt SRS test positions
+
+	// perform rotation
+	clone_block(gc->active_block, &new_block);
+	new_block->rotation = end_rot;
+	// attempt SRS test positions until match
 	for (i = 0; i < srs_desc->test_count; i++) {
 		srs_test = srs_desc->test_arr + i;
 		new_block->position = (struct position){
 		    gc->active_block->position.x + srs_test->x,
 		    gc->active_block->position.y + srs_test->y};
 		if (!test_block(gc, new_block)) {
-			goto complete_rotation;
+			temp_block_p = gc->active_block;
+			gc->active_block = new_block;
+			destroy_block(&temp_block_p);
+			return 0;
 		}
 	}
-
-complete_rotation:
-	// test if move was valid
-	if (!test_block(gc, new_block)) {
-		temp_block_p = gc->active_block;
-		gc->active_block = new_block;
-		destroy_block(&temp_block_p);
-		return 0;
-	} else {
-		destroy_block(&new_block);
-		return -1;
-	}
+	// we have exhasted options.. can not rotate!
+	return -1;
 }
 
 static int lower_block_helper(struct game_contents *gc,
