@@ -1,6 +1,6 @@
 /*
  * tetris-game.c
- * Copyright (C) 2019-2021 nitepone <admin@night.horse>
+ * Copyright (C) 2019-2022 nitepone <admin@night.horse>
  *
  * Distributed under terms of the MIT license.
  */
@@ -11,6 +11,7 @@
 
 #include "os_compat.h"
 #include "tetris_game.h"
+#include "tetris_game_priv.h"
 
 /*
  * Destroys a game_contents and frees memory
@@ -93,47 +94,9 @@ int new_game(struct game_contents **game_contents) {
 }
 
 /*
- * Gets edge centric block positions
- * For use with blocks like the square block or line piece
- *
- * This rotates differently due to the "+ 1" when calculating the offsets
+ * Populates active_block->board_units based on block type offsets.
  */
-static int get_ec_block_pos(struct active_block *block) {
-	int x, y, i;
-	struct position cur_offset_pos;
-	for (i = 0; i < block->tetris_block.cell_count; i++) {
-		// get one offset
-		cur_offset_pos = block->tetris_block.position_offsets[i];
-		// rotate
-		switch (block->rotation) {
-		case none:
-			x = cur_offset_pos.x;
-			y = cur_offset_pos.y;
-			break;
-		case right:
-			x = cur_offset_pos.y;
-			y = (-1) * cur_offset_pos.x + 1;
-			break;
-		case invert:
-			x = (-1) * cur_offset_pos.x + 1;
-			y = (-1) * cur_offset_pos.y + 1;
-			break;
-		case left:
-			x = (-1) * cur_offset_pos.y + 1;
-			y = cur_offset_pos.x;
-			break;
-		}
-		// convert offset to position and save
-		block->board_units[i] = ((struct position){
-		    block->position.x + x, block->position.y + y});
-	}
-	return 0;
-}
-
-/*
- * Gets "block centric" block positions based on offsets and rotation
- */
-static int get_bc_block_pos(struct active_block *block) {
+static int get_block_positions(struct active_block *block) {
 	int x, y, i;
 	struct position cur_offset_pos;
 	for (i = 0; i < block->tetris_block.cell_count; i++) {
@@ -161,24 +124,6 @@ static int get_bc_block_pos(struct active_block *block) {
 		// convert offset to position and save
 		block->board_units[i] = ((struct position){
 		    block->position.x + x, block->position.y + y});
-	}
-	return 0;
-}
-
-/*
- * This should direct blocks that are drawn using unit relational drawing
- * and special blocks to their associated functions.
- */
-static int get_block_positions(struct active_block *block) {
-	switch (block->tetris_block.rotation_type) {
-	// special blocks
-	case corner_based:
-		return get_ec_block_pos(block);
-	// standard blocks
-	case center_based:
-		return get_bc_block_pos(block);
-	default:
-		return -1;
 	}
 	return 0;
 }
@@ -325,27 +270,61 @@ int translate_block_left(struct game_contents *gc) {
 	return translate_block_helper(gc, 1);
 }
 
-int rotate_block(struct game_contents *game_contents, int clockwise) {
-	int x;
+int rotate_block(struct game_contents *gc, int clockwise) {
+	int d;
+	int i;
+	enum rotation start_rot = gc->active_block->rotation;
+	enum rotation end_rot;
+	const struct position *srs_test = NULL;
+	const struct srs_movement_descriptor *srs_desc = NULL;
+	const struct srs_movement_mode *srs_mode =
+	    gc->active_block->tetris_block.srs_mode;
 	struct active_block *new_block = NULL;
 	struct active_block *temp_block_p = NULL;
-	clone_block(game_contents->active_block, &new_block);
-	if (clockwise)
-		x = 1;
-	else
-		x = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
-	// perform rotation
-	new_block->rotation = (new_block->rotation + x) % ROT_COUNT;
-	// test if move was valid
-	if (!test_block(game_contents, new_block)) {
-		temp_block_p = game_contents->active_block;
-		game_contents->active_block = new_block;
-		destroy_block(&temp_block_p);
+
+	// no-op on no SRS kick mode
+	if (srs_mode == NULL) {
 		return 0;
-	} else {
-		destroy_block(&new_block);
-		return -1;
 	}
+	// calculate end_rot
+	if (clockwise) {
+		d = 1;
+	} else {
+		d = (ROT_COUNT - 1); // effectively (-1) as it is remaindered
+	}
+	end_rot = (start_rot + d) % ROT_COUNT;
+	// find SRS descriptor for current movement
+	for (i = 0; i < srs_mode->descriptor_count; i++) {
+		srs_desc = (srs_mode->descriptor_arr + i);
+		if ((srs_desc->start_rot == start_rot) &&
+		    (srs_desc->end_rot == end_rot)) {
+			break;
+		}
+		srs_desc = NULL;
+	}
+	// error if no SRS descriptor for current movement
+	if (srs_desc == NULL) {
+		return -2;
+	}
+
+	// perform rotation
+	clone_block(gc->active_block, &new_block);
+	new_block->rotation = end_rot;
+	// attempt SRS test positions until match
+	for (i = 0; i < srs_desc->test_count; i++) {
+		srs_test = srs_desc->test_arr + i;
+		new_block->position = (struct position){
+		    gc->active_block->position.x + srs_test->x,
+		    gc->active_block->position.y + srs_test->y};
+		if (!test_block(gc, new_block)) {
+			temp_block_p = gc->active_block;
+			gc->active_block = new_block;
+			destroy_block(&temp_block_p);
+			return 0;
+		}
+	}
+	// we have exhasted options.. can not rotate!
+	return -1;
 }
 
 static int lower_block_helper(struct game_contents *gc,
